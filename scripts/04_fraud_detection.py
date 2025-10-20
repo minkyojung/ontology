@@ -157,6 +157,31 @@ class FraudDetector:
                 detected_at: datetime(),
                 amount_recovered: 0,
                 is_repeat_offense: false,
+                detection_reasoning: '{
+                    "matched_rules": [
+                        {
+                            "rule_type": "MCC_BLACKLIST",
+                            "rule_name": "MCC 블랙리스트 위반",
+                            "mcc_code": "' + mcc.code + '",
+                            "mcc_description": "' + mcc.description + '",
+                            "risk_level": "' + mcc.risk_group + '",
+                            "weight": 100,
+                            "source": "rules/blacklist.md",
+                            "detail": "블랙리스트 MCC 코드로 분류된 가맹점에서 거래 발생"
+                        }
+                    ],
+                    "risk_factors": {
+                        "mcc_risk": "BLACK",
+                        "amount": ' + toString(t.amount) + ',
+                        "merchant_trust_score": ' + toString(m.trust_score) + '
+                    },
+                    "final_score": {
+                        "total_score": 100,
+                        "threshold": 70,
+                        "recommendation": "FLAGGED"
+                    },
+                    "explanation": "이 거래는 블랙리스트로 지정된 MCC 코드를 사용하는 가맹점에서 발생했습니다. 블랙리스트 MCC는 법인카드 사용이 금지된 업종입니다."
+                }',
                 created_at: datetime(),
                 updated_at: datetime()
             })

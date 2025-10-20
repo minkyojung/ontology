@@ -34,6 +34,7 @@ export async function GET(request: Request, context: RouteContext) {
         c.status as status,
         c.description as description,
         c.assignedTo as assignedTo,
+        c.detection_reasoning as detectionReasoning,
         toString(c.createdAt) as createdAt,
         e.employeeId as employeeId,
         e.name as employeeName,
@@ -68,6 +69,17 @@ export async function GET(request: Request, context: RouteContext) {
     const amount = record.get('amount');
     const riskScore = record.get('riskScore');
 
+    // Parse detection reasoning if it exists
+    let detectionReasoning = null;
+    const reasoningStr = record.get('detectionReasoning');
+    if (reasoningStr) {
+      try {
+        detectionReasoning = JSON.parse(reasoningStr);
+      } catch (e) {
+        console.error('Failed to parse detection_reasoning:', e);
+      }
+    }
+
     const caseDetail = {
       id: record.get('id'),
       caseId: record.get('caseId'),
@@ -75,6 +87,7 @@ export async function GET(request: Request, context: RouteContext) {
       status: record.get('status'),
       description: record.get('description'),
       assignedTo: record.get('assignedTo'),
+      detectionReasoning,
       createdAt: record.get('createdAt'),
       employee: {
         id: record.get('employeeId'),

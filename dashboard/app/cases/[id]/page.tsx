@@ -8,6 +8,30 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 
+interface DetectionReasoning {
+  matched_rules: Array<{
+    rule_type: string;
+    rule_name: string;
+    mcc_code?: string;
+    mcc_description?: string;
+    risk_level?: string;
+    weight: number;
+    source: string;
+    detail: string;
+  }>;
+  risk_factors: {
+    mcc_risk?: string;
+    amount?: number;
+    merchant_trust_score?: number;
+  };
+  final_score: {
+    total_score: number;
+    threshold: number;
+    recommendation: string;
+  };
+  explanation: string;
+}
+
 interface CaseDetail {
   id: string;
   caseId: string;
@@ -15,6 +39,7 @@ interface CaseDetail {
   status: string;
   description: string;
   assignedTo: string;
+  detectionReasoning?: DetectionReasoning | null;
   createdAt: string;
   employee: {
     id: string;
@@ -233,6 +258,150 @@ export default function CaseDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </CardContent>
       </Card>
+
+      {/* Detection Reasoning */}
+      {caseDetail.detectionReasoning && (
+        <Card className="mb-6 border-yellow-200 bg-yellow-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-600" />
+              탐지 근거 (Detection Reasoning)
+            </CardTitle>
+            <CardDescription>
+              이 케이스가 탐지된 이유와 근거를 확인하세요
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Explanation */}
+            <div className="bg-white rounded-lg p-4 border border-yellow-300">
+              <p className="text-sm font-medium text-yellow-900">
+                {caseDetail.detectionReasoning.explanation}
+              </p>
+            </div>
+
+            {/* Matched Rules */}
+            <div>
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                🔴 Matched Rules ({caseDetail.detectionReasoning.matched_rules.length})
+              </h4>
+              <div className="space-y-3">
+                {caseDetail.detectionReasoning.matched_rules.map((rule, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h5 className="font-semibold text-gray-900">{rule.rule_name}</h5>
+                        <p className="text-xs text-gray-500 mt-1">Type: {rule.rule_type}</p>
+                      </div>
+                      <Badge variant="destructive">
+                        Weight: {rule.weight}
+                      </Badge>
+                    </div>
+                    <Separator className="my-2" />
+                    <p className="text-sm text-gray-700 mb-2">{rule.detail}</p>
+                    {rule.mcc_code && (
+                      <div className="mt-2 space-y-1">
+                        <div className="text-xs">
+                          <span className="text-gray-500">MCC Code:</span>
+                          <span className="ml-2 font-mono font-semibold">{rule.mcc_code}</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Description:</span>
+                          <span className="ml-2">{rule.mcc_description}</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Risk Level:</span>
+                          <Badge variant="destructive" className="ml-2">
+                            {rule.risk_level}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+                    <div className="mt-3 text-xs text-gray-500">
+                      <span>Source:</span>
+                      <code className="ml-2 bg-gray-100 px-2 py-1 rounded">{rule.source}</code>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Risk Factors */}
+            <div>
+              <h4 className="text-sm font-semibold mb-3">📊 Risk Factors</h4>
+              <div className="bg-white rounded-lg p-4 border border-gray-200 grid grid-cols-3 gap-4">
+                {caseDetail.detectionReasoning.risk_factors.mcc_risk && (
+                  <div>
+                    <div className="text-xs text-gray-500">MCC Risk</div>
+                    <div className="font-semibold text-red-600">
+                      {caseDetail.detectionReasoning.risk_factors.mcc_risk}
+                    </div>
+                  </div>
+                )}
+                {caseDetail.detectionReasoning.risk_factors.amount && (
+                  <div>
+                    <div className="text-xs text-gray-500">Amount</div>
+                    <div className="font-semibold">
+                      ₩{caseDetail.detectionReasoning.risk_factors.amount.toLocaleString()}
+                    </div>
+                  </div>
+                )}
+                {caseDetail.detectionReasoning.risk_factors.merchant_trust_score !== undefined && (
+                  <div>
+                    <div className="text-xs text-gray-500">Merchant Trust Score</div>
+                    <div className="font-semibold">
+                      {caseDetail.detectionReasoning.risk_factors.merchant_trust_score}/100
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Final Score */}
+            <div>
+              <h4 className="text-sm font-semibold mb-3">🎯 Final Score</h4>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <div className="text-2xl font-bold text-red-600">
+                      {caseDetail.detectionReasoning.final_score.total_score}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Threshold: {caseDetail.detectionReasoning.final_score.threshold}
+                    </div>
+                  </div>
+                  <Badge
+                    variant={
+                      caseDetail.detectionReasoning.final_score.recommendation === 'FLAGGED'
+                        ? 'destructive'
+                        : 'secondary'
+                    }
+                    className="text-lg px-4 py-2"
+                  >
+                    {caseDetail.detectionReasoning.final_score.recommendation}
+                  </Badge>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 mt-3">
+                  <div
+                    className="bg-red-600 h-3 rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(
+                        (caseDetail.detectionReasoning.final_score.total_score / 100) * 100,
+                        100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* System Note */}
+            <div className="bg-white rounded-lg p-3 border border-gray-200 text-xs text-gray-600">
+              <strong>Note:</strong> 이 탐지는 AI가 아닌 <strong>룰 기반 시스템</strong>에 의해 생성되었습니다.
+              모든 룰은 한국 세법(법인세법 제27조 등) 및 내부 정책(MCC 블랙리스트/그레이리스트)을 기반으로 합니다.
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 mb-6">
         {/* Employee Info */}
