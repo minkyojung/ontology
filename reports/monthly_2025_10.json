@@ -1,0 +1,14 @@
+{
+  "period": "2025-10",
+  "type": "monthly",
+  "generated_at": "2025-10-20T15:45:44.449576",
+  "summary": {
+    "total_transactions": 0,
+    "total_cases": 0,
+    "detection_rate": 0,
+    "recovery_potential": 0
+  },
+  "case_status_breakdown": [],
+  "top_mcc_detections": [],
+  "top_employees": []
+}

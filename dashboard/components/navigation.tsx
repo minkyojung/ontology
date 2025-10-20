@@ -9,7 +9,9 @@ import {
   Users,
   Network,
   BarChart3,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  TrendingUp
 } from 'lucide-react';
 
 const navItems = [
@@ -42,6 +44,16 @@ const navItems = [
     title: 'Evaluation Metrics',
     href: '/evals',
     icon: BarChart3,
+  },
+  {
+    title: 'Reports',
+    href: '/reports',
+    icon: FileText,
+  },
+  {
+    title: 'Performance',
+    href: '/performance',
+    icon: TrendingUp,
   },
 ];
 
