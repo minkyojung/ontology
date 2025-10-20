@@ -18,6 +18,8 @@ interface Transaction {
   amount: number;
   merchant: string;
   mcc: string;
+  mccRiskGroup?: string;
+  mccCategory?: string;
   status: string;
   riskScore: number;
 }
@@ -102,7 +104,28 @@ export default async function TransactionsPage() {
                   </TableCell>
                   <TableCell>{tx.employee}</TableCell>
                   <TableCell>{tx.merchant}</TableCell>
-                  <TableCell>{tx.mcc}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs">{tx.mcc}</span>
+                        {tx.mccRiskGroup && (
+                          <Badge
+                            variant="outline"
+                            className={
+                              tx.mccRiskGroup === 'BLACK' ? 'bg-red-50 text-red-700 border-red-300' :
+                              tx.mccRiskGroup === 'GRAY' ? 'bg-yellow-50 text-yellow-700 border-yellow-300' :
+                              'bg-green-50 text-green-700 border-green-300'
+                            }
+                          >
+                            {tx.mccRiskGroup}
+                          </Badge>
+                        )}
+                      </div>
+                      {tx.mccCategory && (
+                        <span className="text-xs text-muted-foreground">{tx.mccCategory}</span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right font-medium">
                     ₩{tx.amount.toLocaleString()}
                   </TableCell>

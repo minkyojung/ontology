@@ -13,7 +13,7 @@ export async function getStats() {
 
     // Get flagged transactions
     const flaggedTransactionsResult = await session.run(
-      'MATCH (t:Transaction) WHERE t.risk_score > 0.7 RETURN count(t) as flagged'
+      'MATCH (t:Transaction) WHERE t.riskScore > 0.7 RETURN count(t) as flagged'
     );
     const flaggedTransactions = flaggedTransactionsResult.records[0]?.get('flagged').toNumber() || 0;
 
@@ -48,19 +48,21 @@ export async function getTransactions() {
 
   try {
     const result = await session.run(`
-      MATCH (t:Transaction)-[:MADE_BY]->(e:Employee)
-      MATCH (t)-[:BELONGS_TO]->(m:Merchant)
+      MATCH (e:Employee)-[:MADE_TRANSACTION]->(t:Transaction)
+      MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
       OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
       RETURN
         elementId(t) as id,
-        t.date as date,
+        t.transactionDate as date,
         e.name as employee,
         t.amount as amount,
         m.name as merchant,
-        mcc.code as mcc,
+        mcc.code as mccCode,
+        mcc.risk_group as mccRiskGroup,
+        mcc.category as mccCategory,
         t.status as status,
-        t.risk_score as riskScore
-      ORDER BY t.date DESC
+        t.riskScore as riskScore
+      ORDER BY t.transactionDate DESC
       LIMIT 50
     `);
 
@@ -76,7 +78,9 @@ export async function getTransactions() {
           ? amount.toNumber()
           : amount || 0,
         merchant: record.get('merchant') || 'Unknown',
-        mcc: record.get('mcc') || 'N/A',
+        mcc: record.get('mccCode') || 'N/A',
+        mccRiskGroup: record.get('mccRiskGroup') || 'N/A',
+        mccCategory: record.get('mccCategory') || 'N/A',
         status: record.get('status') || 'unknown',
         riskScore: typeof riskScore?.toNumber === 'function'
           ? riskScore.toNumber()
@@ -98,9 +102,9 @@ export async function getEmployees() {
   try {
     const result = await session.run(`
       MATCH (e:Employee)
-      OPTIONAL MATCH (t:Transaction)-[:MADE_BY]->(e)
+      OPTIONAL MATCH (e)-[:MADE_TRANSACTION]->(t:Transaction)
       WITH e, count(t) as totalTransactions,
-           collect(CASE WHEN t.risk_score > 0.7 THEN t ELSE null END) as flaggedTxs
+           collect(CASE WHEN t.riskScore > 0.7 THEN t ELSE null END) as flaggedTxs
       RETURN
         elementId(e) as id,
         e.name as name,
@@ -108,7 +112,7 @@ export async function getEmployees() {
         e.email as email,
         totalTransactions,
         size([x IN flaggedTxs WHERE x IS NOT NULL]) as flaggedTransactions,
-        avg(CASE WHEN totalTransactions > 0 THEN e.risk_score ELSE 0 END) as riskScore
+        avg(CASE WHEN totalTransactions > 0 THEN e.riskScore ELSE 0 END) as riskScore
       ORDER BY e.name
     `);
 
@@ -141,8 +145,8 @@ export async function getGraphData() {
 
   try {
     const result = await session.run(`
-      MATCH (t:Transaction)-[:MADE_BY]->(e:Employee)
-      MATCH (t)-[:BELONGS_TO]->(m:Merchant)
+      MATCH (e:Employee)-[:MADE_TRANSACTION]->(t:Transaction)
+      MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
       OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
       RETURN
         elementId(e) as employeeId,
@@ -150,7 +154,7 @@ export async function getGraphData() {
         elementId(t) as transactionId,
         t.amount as amount,
         t.status as status,
-        t.risk_score as riskScore,
+        t.riskScore as riskScore,
         elementId(m) as merchantId,
         m.name as merchantName,
         mcc.code as mccCode

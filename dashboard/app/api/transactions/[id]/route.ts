@@ -13,25 +13,37 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     const result = await session.run(
       `
-      MATCH (t:Transaction {transaction_id: $id})-[:MADE_BY]->(e:Employee)
-      MATCH (t)-[:BELONGS_TO]->(m:Merchant)
+      MATCH (e:Employee)-[:MADE_TRANSACTION]->(t:Transaction)
+      WHERE elementId(t) = $id
+      MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
       OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
+      OPTIONAL MATCH (mcc)<-[:APPLIES_TO_MCC]-(tax:TaxRule)
       RETURN
-        t.transaction_id as id,
-        t.date as date,
-        t.time as time,
-        e.employee_id as employeeId,
+        elementId(t) as id,
+        t.transactionDate as transactionDate,
+        t.transactionId as transactionId,
+        e.employeeId as employeeId,
         e.name as employeeName,
         e.department as employeeDepartment,
         e.email as employeeEmail,
         t.amount as amount,
         t.currency as currency,
         m.name as merchantName,
-        m.category as merchantCategory,
-        mcc.code as mcc,
-        m.location as merchantLocation,
+        m.city as merchantCity,
+        m.country as merchantCountry,
+        mcc.code as mccCode,
+        mcc.category as mccCategory,
+        mcc.description as mccDescription,
+        mcc.risk_group as mccRiskGroup,
+        mcc.risk_level as mccRiskLevel,
+        collect(DISTINCT {
+          ruleId: tax.ruleId,
+          name: tax.name,
+          legalReference: tax.legalReference
+        }) as taxRules,
         t.status as status,
-        t.risk_score as riskScore
+        t.riskScore as riskScore,
+        t.description as description
       `,
       { id }
     );
@@ -44,10 +56,15 @@ export async function GET(request: Request, context: RouteContext) {
     }
 
     const record = result.records[0];
+    const amount = record.get('amount');
+    const riskScore = record.get('riskScore');
+    const mccRiskLevel = record.get('mccRiskLevel');
+
     const transaction = {
       id: record.get('id'),
-      date: record.get('date'),
-      time: record.get('time'),
+      transactionId: record.get('transactionId'),
+      transactionDate: record.get('transactionDate'),
+      description: record.get('description'),
       employee: {
         id: record.get('employeeId'),
         name: record.get('employeeName'),
@@ -56,14 +73,21 @@ export async function GET(request: Request, context: RouteContext) {
       },
       merchant: {
         name: record.get('merchantName'),
-        category: record.get('merchantCategory'),
-        mcc: record.get('mcc'),
-        location: record.get('merchantLocation'),
+        city: record.get('merchantCity'),
+        country: record.get('merchantCountry'),
       },
-      amount: record.get('amount'),
+      mcc: {
+        code: record.get('mccCode'),
+        category: record.get('mccCategory'),
+        description: record.get('mccDescription'),
+        riskGroup: record.get('mccRiskGroup'),
+        riskLevel: typeof mccRiskLevel?.toNumber === 'function' ? mccRiskLevel.toNumber() : (mccRiskLevel || 0),
+      },
+      taxRules: record.get('taxRules').filter((rule: any) => rule.ruleId !== null),
+      amount: typeof amount?.toNumber === 'function' ? amount.toNumber() : (amount || 0),
       currency: record.get('currency'),
       status: record.get('status'),
-      riskScore: record.get('riskScore'),
+      riskScore: typeof riskScore?.toNumber === 'function' ? riskScore.toNumber() : (riskScore || 0),
     };
 
     return NextResponse.json(transaction);
