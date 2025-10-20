@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export async function GET(request: Request) {
   try {
@@ -67,12 +71,8 @@ export async function GET(request: Request) {
 }
 
 // 리포트 재생성 API
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    const { exec } = require('child_process');
-    const { promisify } = require('util');
-    const execAsync = promisify(exec);
-
     // 리포트 생성 스크립트 실행
     const scriptPath = path.join(process.cwd(), '..', 'scripts', '08_generate_reports.py');
     const { stdout, stderr } = await execAsync(`python3 ${scriptPath}`);
@@ -86,10 +86,11 @@ export async function POST(request: Request) {
       message: 'Reports regenerated successfully',
       output: stdout
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error regenerating reports:', error);
     return NextResponse.json(
-      { error: 'Failed to regenerate reports', details: error.message },
+      { error: 'Failed to regenerate reports', details: errorMessage },
       { status: 500 }
     );
   }

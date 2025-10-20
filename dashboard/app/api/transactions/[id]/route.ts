@@ -92,7 +92,7 @@ export async function GET(request: Request, context: RouteContext) {
         riskGroup: record.get('mccRiskGroup'),
         riskLevel: typeof mccRiskLevel?.toNumber === 'function' ? mccRiskLevel.toNumber() : (mccRiskLevel || 0),
       },
-      taxRules: record.get('taxRules').filter((rule: any) => rule.ruleId !== null),
+      taxRules: record.get('taxRules').filter((rule: { ruleId: string | null }) => rule.ruleId !== null),
       amount: typeof amount?.toNumber === 'function' ? amount.toNumber() : (amount || 0),
       currency: record.get('currency'),
       status: record.get('status'),

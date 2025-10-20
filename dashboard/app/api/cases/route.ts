@@ -63,7 +63,7 @@ export async function GET() {
           mccCode: record.get('mccCode') || 'N/A',
           mccRiskGroup: record.get('mccRiskGroup') || 'N/A'
         },
-        taxRules: record.get('taxRules').filter((rule: any) => rule.ruleId !== null)
+        taxRules: record.get('taxRules').filter((rule: { ruleId: string | null }) => rule.ruleId !== null)
       };
     });
 

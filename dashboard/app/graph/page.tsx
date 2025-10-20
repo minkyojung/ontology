@@ -1,9 +1,12 @@
 import { Card } from '@/components/ui/card';
 import { GraphView } from '@/components/dashboard/graph-view';
 import { getGraphData } from '@/lib/neo4j/queries';
+import type { Node, Edge } from '@xyflow/react';
 
 export default async function GraphPage() {
-  let nodes, edges;
+  let nodes: Node[] = [];
+  let edges: Edge[] = [];
+
   try {
     const data = await getGraphData();
     nodes = data.nodes;

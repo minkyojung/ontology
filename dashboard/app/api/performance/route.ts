@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const reportsDir = path.join(process.cwd(), '..', 'reports');
     const performanceFile = path.join(reportsDir, 'performance_trends.json');

@@ -97,10 +97,6 @@ export default function PerformancePage() {
     ? latestTrend.detection_rate - previousTrend.detection_rate
     : 0;
 
-  const caseCountTrend = latestTrend && previousTrend
-    ? latestTrend.case_count - previousTrend.case_count
-    : 0;
-
   // 평균 탐지율 계산
   const avgDetectionRate = trends.length > 0
     ? trends.reduce((sum, t) => sum + t.detection_rate, 0) / trends.length

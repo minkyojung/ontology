@@ -99,7 +99,7 @@ export async function GET(request: Request, context: RouteContext) {
         description: record.get('mccDescription'),
         riskGroup: record.get('mccRiskGroup')
       },
-      taxRules: record.get('taxRules').filter((rule: any) => rule.ruleId !== null)
+      taxRules: record.get('taxRules').filter((rule: { ruleId: string | null }) => rule.ruleId !== null)
     };
 
     return NextResponse.json(caseDetail);
