@@ -7,7 +7,9 @@ import {
   LayoutDashboard,
   Receipt,
   Users,
-  Network
+  Network,
+  BarChart3,
+  AlertCircle
 } from 'lucide-react';
 
 const navItems = [
@@ -22,6 +24,11 @@ const navItems = [
     icon: Receipt,
   },
   {
+    title: 'Cases',
+    href: '/cases',
+    icon: AlertCircle,
+  },
+  {
     title: 'Employees',
     href: '/employees',
     icon: Users,
@@ -30,6 +37,11 @@ const navItems = [
     title: 'Graph Explorer',
     href: '/graph',
     icon: Network,
+  },
+  {
+    title: 'Evaluation Metrics',
+    href: '/evals',
+    icon: BarChart3,
   },
 ];
 
