@@ -59,11 +59,20 @@ export async function GET(request: Request, context: RouteContext) {
     const amount = record.get('amount');
     const riskScore = record.get('riskScore');
     const mccRiskLevel = record.get('mccRiskLevel');
+    const transactionDate = record.get('transactionDate');
+
+    // Convert Neo4j DateTime to string
+    let dateString = 'N/A';
+    if (transactionDate && typeof transactionDate === 'object' && transactionDate.year) {
+      dateString = `${transactionDate.year}-${String(transactionDate.month).padStart(2, '0')}-${String(transactionDate.day).padStart(2, '0')} ${String(transactionDate.hour).padStart(2, '0')}:${String(transactionDate.minute).padStart(2, '0')}`;
+    } else if (typeof transactionDate === 'string') {
+      dateString = transactionDate;
+    }
 
     const transaction = {
       id: record.get('id'),
       transactionId: record.get('transactionId'),
-      transactionDate: record.get('transactionDate'),
+      transactionDate: dateString,
       description: record.get('description'),
       employee: {
         id: record.get('employeeId'),

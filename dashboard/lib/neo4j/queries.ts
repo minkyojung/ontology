@@ -48,12 +48,14 @@ export async function getTransactions() {
 
   try {
     const result = await session.run(`
-      MATCH (e:Employee)-[:MADE_TRANSACTION]->(t:Transaction)
-      MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+      MATCH (e:Employee)-[:MADE_TRANSACTION]->(t:Transaction)-[:AT_MERCHANT]->(m:Merchant)
       OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
+      WITH t, e, m, mcc
+      ORDER BY t.transactionDate DESC
+      LIMIT 50
       RETURN
         elementId(t) as id,
-        t.transactionDate as date,
+        toString(t.transactionDate) as date,
         e.name as employee,
         t.amount as amount,
         m.name as merchant,
@@ -62,8 +64,6 @@ export async function getTransactions() {
         mcc.category as mccCategory,
         t.status as status,
         t.riskScore as riskScore
-      ORDER BY t.transactionDate DESC
-      LIMIT 50
     `);
 
     return result.records.map((record) => {
@@ -103,16 +103,18 @@ export async function getEmployees() {
     const result = await session.run(`
       MATCH (e:Employee)
       OPTIONAL MATCH (e)-[:MADE_TRANSACTION]->(t:Transaction)
-      WITH e, count(t) as totalTransactions,
-           collect(CASE WHEN t.riskScore > 0.7 THEN t ELSE null END) as flaggedTxs
+      WITH e,
+           count(t) as totalTransactions,
+           sum(CASE WHEN t.riskScore > 0.7 THEN 1 ELSE 0 END) as flaggedCount,
+           e.riskScore as employeeRiskScore
       RETURN
         elementId(e) as id,
         e.name as name,
         e.department as department,
         e.email as email,
         totalTransactions,
-        size([x IN flaggedTxs WHERE x IS NOT NULL]) as flaggedTransactions,
-        avg(CASE WHEN totalTransactions > 0 THEN e.riskScore ELSE 0 END) as riskScore
+        flaggedCount as flaggedTransactions,
+        employeeRiskScore as riskScore
       ORDER BY e.name
     `);
 
