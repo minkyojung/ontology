@@ -35,7 +35,6 @@ export async function getStats() {
       fraudRate: parseFloat(fraudRate),
     };
   } catch (error) {
-    console.error('Error fetching stats:', error);
     throw error;
   } finally {
     await session.close();
@@ -88,7 +87,6 @@ export async function getTransactions() {
       };
     });
   } catch (error) {
-    console.error('Error fetching transactions:', error);
     throw error;
   } finally {
     await session.close();
@@ -134,7 +132,6 @@ export async function getEmployees() {
       };
     });
   } catch (error) {
-    console.error('Error fetching employees:', error);
     throw error;
   } finally {
     await session.close();
@@ -249,7 +246,6 @@ export async function getGraphData() {
 
     return { nodes, edges };
   } catch (error) {
-    console.error('Error fetching graph data:', error);
     throw error;
   } finally {
     await session.close();

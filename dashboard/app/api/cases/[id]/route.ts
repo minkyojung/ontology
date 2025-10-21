@@ -69,8 +69,7 @@ export async function GET(request: Request, context: RouteContext) {
     };
 
     return NextResponse.json(caseDetail);
-  } catch (error) {
-    console.error('Error fetching case detail:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Failed to fetch case detail' },
       { status: 500 }
@@ -124,8 +123,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
 
     return NextResponse.json({ success: true, status: newStatus });
-  } catch (error) {
-    console.error('Error updating case:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Failed to update case' },
       { status: 500 }

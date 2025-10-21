@@ -54,8 +54,7 @@ export default function PerformancePage() {
       if (!response.ok) throw new Error('Failed to fetch performance data');
       const result = await response.json();
       setData(result);
-    } catch (error) {
-      console.error('Error fetching performance data:', error);
+    } catch (_error) {
     } finally {
       setLoading(false);
     }
@@ -148,7 +147,9 @@ export default function PerformancePage() {
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.avg_resolution_hours.toFixed(1)}h</div>
+            <div className="text-2xl font-bold">
+              {data.avg_resolution_hours ? data.avg_resolution_hours.toFixed(1) : '0.0'}h
+            </div>
             <p className="text-xs text-muted-foreground">Case creation to decision</p>
           </CardContent>
         </Card>

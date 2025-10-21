@@ -10,9 +10,7 @@ export async function GET() {
     const metrics = JSON.parse(fileContents);
 
     return NextResponse.json(metrics);
-  } catch (error) {
-    console.error('Error reading evaluation metrics:', error);
-
+  } catch (_error) {
     // Return mock data if file doesn't exist
     return NextResponse.json({
       timestamp: new Date().toISOString(),

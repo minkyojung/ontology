@@ -97,8 +97,7 @@ export default function ReportsPage() {
       if (!response.ok) throw new Error('Failed to fetch report');
       const data = await response.json();
       setReport(data);
-    } catch (error) {
-      console.error('Error fetching report:', error);
+    } catch (_error) {
     } finally {
       setLoading(false);
     }
@@ -110,8 +109,7 @@ export default function ReportsPage() {
       const response = await fetch('/api/reports', { method: 'POST' });
       if (!response.ok) throw new Error('Failed to regenerate report');
       await fetchReport();
-    } catch (error) {
-      console.error('Error regenerating report:', error);
+    } catch (_error) {
     } finally {
       setRegenerating(false);
     }

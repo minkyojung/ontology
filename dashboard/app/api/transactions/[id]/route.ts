@@ -100,8 +100,7 @@ export async function GET(request: Request, context: RouteContext) {
     };
 
     return NextResponse.json(transaction);
-  } catch (error) {
-    console.error('Error fetching transaction detail:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Failed to fetch transaction detail' },
       { status: 500 }

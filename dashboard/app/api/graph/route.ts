@@ -104,8 +104,7 @@ export async function GET() {
     });
 
     return NextResponse.json({ nodes, edges });
-  } catch (error) {
-    console.error('Error fetching graph data:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Failed to fetch graph data' },
       { status: 500 }

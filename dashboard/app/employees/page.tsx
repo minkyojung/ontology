@@ -34,8 +34,7 @@ export default async function EmployeesPage() {
   let employees: Employee[];
   try {
     employees = await getEmployees();
-  } catch (error) {
-    console.error('Error fetching employees:', error);
+  } catch (_error) {
     // Fallback to mock data
     employees = [
       {

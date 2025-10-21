@@ -23,8 +23,7 @@ export async function GET(
     const graphData = transformCaseNetwork(networkData);
 
     return NextResponse.json(graphData);
-  } catch (error) {
-    console.error('Error fetching case network:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

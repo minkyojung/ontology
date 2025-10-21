@@ -18,8 +18,7 @@ export default async function DashboardPage() {
   let kpiData;
   try {
     kpiData = await getStats();
-  } catch (error) {
-    console.error('Error fetching stats:', error);
+  } catch (_error) {
     // Fallback to mock data
     kpiData = {
       totalTransactions: 15234,

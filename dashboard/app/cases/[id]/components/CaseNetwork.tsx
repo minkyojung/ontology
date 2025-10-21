@@ -30,7 +30,6 @@ export function CaseNetwork({ caseId }: CaseNetworkProps) {
         const data = await response.json();
         setGraphData(data);
       } catch (err) {
-        console.error('Error fetching graph:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);

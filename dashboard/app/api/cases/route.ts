@@ -6,38 +6,115 @@ export async function GET() {
   const session = driver.session();
 
   try {
+    // Get all case types with reasonable limits per type
     const result = await session.run(`
-      MATCH (c:Case)
-      OPTIONAL MATCH (c)-[:RELATED_TO_TRANSACTION]->(t:Transaction)
-      OPTIONAL MATCH (e:Employee)-[:MADE_TRANSACTION]->(t)
-      OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
-      OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
-      OPTIONAL MATCH (c)-[:CITES_RULE]->(rule:TaxRule)
-      WITH c, t, e, m, mcc,
-           collect(DISTINCT {
-             ruleId: rule.ruleId,
-             name: rule.name,
-             legalReference: rule.legalReference
-           }) as taxRules
+      CALL {
+        MATCH (c:Case {case_type: 'SPLIT_PAYMENT'})
+        OPTIONAL MATCH (c)-[:INVOLVES_TRANSACTION]->(t:Transaction)
+        OPTIONAL MATCH (e:Employee)-[:MADE_TRANSACTION]->(t)
+        OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+        OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
+        OPTIONAL MATCH (c)-[:CITES_RULE]->(rule:TaxRule)
+        WITH c, t, e, m, mcc,
+             collect(DISTINCT {
+               ruleId: rule.ruleId,
+               name: rule.name,
+               legalReference: rule.legalReference
+             }) as taxRules
+        RETURN c, t, e, m, mcc, taxRules
+        LIMIT 50
+
+        UNION ALL
+
+        MATCH (c:Case {case_type: 'WEEKEND_TRANSACTION'})
+        OPTIONAL MATCH (c)-[:INVOLVES_TRANSACTION]->(t:Transaction)
+        OPTIONAL MATCH (e:Employee)-[:MADE_TRANSACTION]->(t)
+        OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+        OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
+        OPTIONAL MATCH (c)-[:CITES_RULE]->(rule:TaxRule)
+        WITH c, t, e, m, mcc,
+             collect(DISTINCT {
+               ruleId: rule.ruleId,
+               name: rule.name,
+               legalReference: rule.legalReference
+             }) as taxRules
+        RETURN c, t, e, m, mcc, taxRules
+        ORDER BY c.created_at DESC
+        LIMIT 200
+
+        UNION ALL
+
+        MATCH (c:Case {case_type: 'GRAYLIST_MCC'})
+        OPTIONAL MATCH (c)-[:INVOLVES_TRANSACTION]->(t:Transaction)
+        OPTIONAL MATCH (e:Employee)-[:MADE_TRANSACTION]->(t)
+        OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+        OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
+        OPTIONAL MATCH (c)-[:CITES_RULE]->(rule:TaxRule)
+        WITH c, t, e, m, mcc,
+             collect(DISTINCT {
+               ruleId: rule.ruleId,
+               name: rule.name,
+               legalReference: rule.legalReference
+             }) as taxRules
+        RETURN c, t, e, m, mcc, taxRules
+        ORDER BY c.created_at DESC
+        LIMIT 200
+
+        UNION ALL
+
+        MATCH (c:Case {case_type: 'BLACKLIST_MCC'})
+        OPTIONAL MATCH (c)-[:INVOLVES_TRANSACTION]->(t:Transaction)
+        OPTIONAL MATCH (e:Employee)-[:MADE_TRANSACTION]->(t)
+        OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+        OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
+        OPTIONAL MATCH (c)-[:CITES_RULE]->(rule:TaxRule)
+        WITH c, t, e, m, mcc,
+             collect(DISTINCT {
+               ruleId: rule.ruleId,
+               name: rule.name,
+               legalReference: rule.legalReference
+             }) as taxRules
+        RETURN c, t, e, m, mcc, taxRules
+        ORDER BY c.created_at DESC
+        LIMIT 200
+
+        UNION ALL
+
+        MATCH (c:Case {case_type: 'OFF_HOURS'})
+        OPTIONAL MATCH (c)-[:INVOLVES_TRANSACTION]->(t:Transaction)
+        OPTIONAL MATCH (e:Employee)-[:MADE_TRANSACTION]->(t)
+        OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+        OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
+        OPTIONAL MATCH (c)-[:CITES_RULE]->(rule:TaxRule)
+        WITH c, t, e, m, mcc,
+             collect(DISTINCT {
+               ruleId: rule.ruleId,
+               name: rule.name,
+               legalReference: rule.legalReference
+             }) as taxRules
+        RETURN c, t, e, m, mcc, taxRules
+        ORDER BY c.created_at DESC
+        LIMIT 200
+      }
       RETURN
         elementId(c) as id,
-        c.caseId as caseId,
+        c.case_id as caseId,
+        c.case_type as caseType,
         c.severity as severity,
         c.status as status,
         c.description as description,
-        c.assignedTo as assignedTo,
-        toString(c.createdAt) as createdAt,
+        c.assigned_to as assignedTo,
+        toString(c.created_at) as createdAt,
         e.name as employeeName,
         e.department as employeeDepartment,
-        t.transactionId as transactionId,
+        t.id as transactionId,
         t.amount as amount,
-        toString(t.transactionDate) as transactionDate,
+        toString(t.transacted_at) as transactionDate,
         m.name as merchantName,
         mcc.code as mccCode,
         mcc.risk_group as mccRiskGroup,
         taxRules
-      ORDER BY c.createdAt DESC
-      LIMIT 100
+      ORDER BY c.created_at DESC
     `);
 
     const cases = result.records.map((record) => {
@@ -46,6 +123,7 @@ export async function GET() {
       return {
         id: record.get('id') || 'unknown',
         caseId: record.get('caseId') || 'N/A',
+        caseType: record.get('caseType') || undefined,
         severity: record.get('severity') || 'UNKNOWN',
         status: record.get('status') || 'UNKNOWN',
         description: record.get('description') || '',
@@ -68,8 +146,7 @@ export async function GET() {
     });
 
     return NextResponse.json(cases);
-  } catch (error) {
-    console.error('Error fetching cases:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Failed to fetch cases' },
       { status: 500 }

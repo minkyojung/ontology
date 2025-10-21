@@ -29,8 +29,7 @@ export async function GET() {
       ...performance,
       rule_effectiveness: ruleEffectiveness,
     });
-  } catch (error) {
-    console.error('Error fetching performance data:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Failed to fetch performance data' },
       { status: 500 }

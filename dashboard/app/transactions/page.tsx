@@ -51,8 +51,7 @@ export default async function TransactionsPage() {
   let transactions: Transaction[];
   try {
     transactions = await getTransactions();
-  } catch (error) {
-    console.error('Error fetching transactions:', error);
+  } catch (_error) {
     // Fallback to mock data
     transactions = [
       {

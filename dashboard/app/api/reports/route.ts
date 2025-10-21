@@ -61,8 +61,7 @@ export async function GET(request: Request) {
     const report = JSON.parse(reportData);
 
     return NextResponse.json(report);
-  } catch (error) {
-    console.error('Error fetching reports:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Failed to fetch reports' },
       { status: 500 }
@@ -75,11 +74,7 @@ export async function POST() {
   try {
     // 리포트 생성 스크립트 실행
     const scriptPath = path.join(process.cwd(), '..', 'scripts', '08_generate_reports.py');
-    const { stdout, stderr } = await execAsync(`python3 ${scriptPath}`);
-
-    if (stderr && !stderr.includes('Received notification')) {
-      console.error('Script stderr:', stderr);
-    }
+    const { stdout, stderr: _stderr } = await execAsync(`python3 ${scriptPath}`);
 
     return NextResponse.json({
       success: true,
@@ -88,7 +83,6 @@ export async function POST() {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error regenerating reports:', error);
     return NextResponse.json(
       { error: 'Failed to regenerate reports', details: errorMessage },
       { status: 500 }

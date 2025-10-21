@@ -35,8 +35,7 @@ export async function GET() {
       totalEmployees,
       fraudRate: parseFloat(fraudRate),
     });
-  } catch (error) {
-    console.error('Error fetching stats:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Failed to fetch statistics' },
       { status: 500 }

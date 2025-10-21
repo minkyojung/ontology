@@ -100,8 +100,7 @@ async function getCases(): Promise<Case[]> {
     });
 
     return cases;
-  } catch (error) {
-    console.error('Error fetching cases:', error);
+  } catch (_error) {
     return [];
   } finally {
     await session.close();

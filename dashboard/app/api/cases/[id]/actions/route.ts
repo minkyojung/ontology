@@ -106,8 +106,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     } finally {
       await session.close();
     }
-  } catch (error) {
-    console.error('Error processing case action:', error);
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

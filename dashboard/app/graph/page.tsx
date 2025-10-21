@@ -11,8 +11,7 @@ export default async function GraphPage() {
     const data = await getGraphData();
     nodes = data.nodes;
     edges = data.edges;
-  } catch (error) {
-    console.error('Error fetching graph data:', error);
+  } catch (_error) {
     // Fallback to mock data
     nodes = [
       {
