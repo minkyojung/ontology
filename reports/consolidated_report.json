@@ -1,9 +1,9 @@
 {
-  "generated_at": "2025-10-20T15:45:44.842447",
+  "generated_at": "2025-10-21T11:22:59.920510",
   "monthly": {
     "period": "2025-10",
     "type": "monthly",
-    "generated_at": "2025-10-20T15:45:44.449576",
+    "generated_at": "2025-10-21T11:22:59.551373",
     "summary": {
       "total_transactions": 0,
       "total_cases": 0,
@@ -17,7 +17,7 @@
   "quarterly": {
     "period": "2025-Q4",
     "type": "quarterly",
-    "generated_at": "2025-10-20T15:45:44.543872",
+    "generated_at": "2025-10-21T11:22:59.680700",
     "summary": {
       "total_transactions": 0,
       "total_cases": 0,
@@ -28,7 +28,7 @@
     "monthly_trend": []
   },
   "rule_effectiveness": {
-    "generated_at": "2025-10-20T15:45:44.672427",
+    "generated_at": "2025-10-21T11:22:59.831227",
     "rule_performance": [],
     "blacklist_rule": {
       "total_cases": 0,
@@ -53,7 +53,7 @@
     ]
   },
   "performance_trends": {
-    "generated_at": "2025-10-20T15:45:44.842220",
+    "generated_at": "2025-10-21T11:22:59.920113",
     "monthly_trends": [],
     "avg_resolution_hours": null,
     "repeat_offenders": []
