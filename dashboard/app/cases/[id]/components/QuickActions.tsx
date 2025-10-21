@@ -34,7 +34,7 @@ export function QuickActions({ caseId, caseType, employeeName, status }: QuickAc
   // Get auto-reject template
   const rejectTemplate = getRejectTemplate(caseType);
   const autoRejectMessage = rejectTemplate
-    ? formatRejectMessage(rejectTemplate, employeeName)
+    ? formatRejectMessage(rejectTemplate)
     : '';
 
   const handleQuickReject = async () => {
@@ -69,8 +69,7 @@ export function QuickActions({ caseId, caseType, employeeName, status }: QuickAc
       setShowRejectDialog(false);
       setComment('');
       router.refresh();
-    } catch (error) {
-      console.error('Failed to reject case:', error);
+    } catch (_error) {
       toast.error('Failed to reject case', {
         description: 'Please try again or contact support.',
       });
@@ -106,8 +105,7 @@ export function QuickActions({ caseId, caseType, employeeName, status }: QuickAc
       setShowApproveDialog(false);
       setComment('');
       router.refresh();
-    } catch (error) {
-      console.error('Failed to approve case:', error);
+    } catch (_error) {
       toast.error('Failed to approve case', {
         description: 'Please try again or contact support.',
       });
@@ -143,8 +141,7 @@ export function QuickActions({ caseId, caseType, employeeName, status }: QuickAc
       setShowReceiptDialog(false);
       setComment('');
       router.refresh();
-    } catch (error) {
-      console.error('Failed to request receipt:', error);
+    } catch (_error) {
       toast.error('Failed to request receipt', {
         description: 'Please try again or contact support.',
       });
