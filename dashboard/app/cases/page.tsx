@@ -1,18 +1,11 @@
-import Link from 'next/link';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CasesTable } from './components/CasesTable';
+import { getDriver } from '@/lib/neo4j/driver';
 
 interface Case {
   id: string;
   caseId: string;
+  caseType?: string;
   severity: string;
   status: string;
   description: string;
@@ -37,49 +30,82 @@ interface Case {
   }>;
 }
 
-function getSeverityBadge(severity: string) {
-  switch (severity.toUpperCase()) {
-    case 'CRITICAL':
-      return <Badge variant="destructive">CRITICAL</Badge>;
-    case 'HIGH':
-      return <Badge variant="default" className="bg-orange-600">HIGH</Badge>;
-    case 'MEDIUM':
-      return <Badge variant="default" className="bg-yellow-600">MEDIUM</Badge>;
-    case 'LOW':
-      return <Badge variant="outline">LOW</Badge>;
-    default:
-      return <Badge variant="secondary">{severity}</Badge>;
-  }
-}
-
-function getStatusBadge(status: string) {
-  switch (status.toUpperCase()) {
-    case 'OPEN':
-      return <Badge variant="default" className="bg-blue-600">OPEN</Badge>;
-    case 'IN_PROGRESS':
-      return <Badge variant="default" className="bg-purple-600">IN PROGRESS</Badge>;
-    case 'RESOLVED':
-      return <Badge variant="default" className="bg-green-600">RESOLVED</Badge>;
-    case 'CLOSED':
-      return <Badge variant="secondary">CLOSED</Badge>;
-    case 'REJECTED':
-      return <Badge variant="outline" className="text-red-600">REJECTED</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
-}
 
 async function getCases(): Promise<Case[]> {
-  const res = await fetch('http://localhost:3004/api/cases', {
-    cache: 'no-store'
-  });
+  const driver = getDriver();
+  const session = driver.session();
 
-  if (!res.ok) {
-    console.error('Failed to fetch cases');
+  try {
+    const result = await session.run(`
+      MATCH (c:Case)
+      OPTIONAL MATCH (c)-[:INVOLVES_TRANSACTION]->(t:Transaction)
+      OPTIONAL MATCH (e:Employee)-[:MADE_TRANSACTION]->(t)
+      OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+      OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
+      OPTIONAL MATCH (c)-[:CITES_RULE]->(rule:TaxRule)
+      WITH c, t, e, m, mcc,
+           collect(DISTINCT {
+             ruleId: rule.ruleId,
+             name: rule.name,
+             legalReference: rule.legalReference
+           }) as taxRules
+      RETURN
+        elementId(c) as id,
+        c.case_id as caseId,
+        c.case_type as caseType,
+        c.severity as severity,
+        c.status as status,
+        c.description as description,
+        c.assigned_to as assignedTo,
+        toString(c.created_at) as createdAt,
+        e.name as employeeName,
+        e.department as employeeDepartment,
+        t.id as transactionId,
+        t.amount as amount,
+        toString(t.transacted_at) as transactionDate,
+        m.name as merchantName,
+        mcc.code as mccCode,
+        mcc.risk_group as mccRiskGroup,
+        taxRules
+      ORDER BY c.created_at DESC
+      LIMIT 500
+    `);
+
+    const cases = result.records.map((record) => {
+      const amount = record.get('amount');
+
+      return {
+        id: record.get('id') || 'unknown',
+        caseId: record.get('caseId') || 'N/A',
+        caseType: record.get('caseType') || undefined,
+        severity: record.get('severity') || 'UNKNOWN',
+        status: record.get('status') || 'UNKNOWN',
+        description: record.get('description') || '',
+        assignedTo: record.get('assignedTo') || 'Unassigned',
+        createdAt: record.get('createdAt') || '',
+        employee: {
+          name: record.get('employeeName') || 'N/A',
+          department: record.get('employeeDepartment') || 'N/A',
+        },
+        transaction: {
+          transactionId: record.get('transactionId') || 'N/A',
+          amount: typeof amount?.toNumber === 'function' ? amount.toNumber() : (amount || 0),
+          transactionDate: record.get('transactionDate') || 'N/A',
+          merchantName: record.get('merchantName') || 'N/A',
+          mccCode: record.get('mccCode') || 'N/A',
+          mccRiskGroup: record.get('mccRiskGroup') || 'N/A',
+        },
+        taxRules: record.get('taxRules').filter((rule: { ruleId: string | null }) => rule.ruleId !== null)
+      };
+    });
+
+    return cases;
+  } catch (error) {
+    console.error('Error fetching cases:', error);
     return [];
+  } finally {
+    await session.close();
   }
-
-  return res.json();
 }
 
 export default async function CasesPage() {
@@ -94,153 +120,62 @@ export default async function CasesPage() {
   };
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Fraud Cases</h1>
-        <p className="text-muted-foreground mt-2">
+    <div className="p-4">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold">Fraud Cases</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Manage and investigate fraud detection cases
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
+      <div className="grid gap-3 md:grid-cols-4 mb-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
               Total Cases
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
               Open Cases
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.open}</div>
+            <div className="text-xl font-bold">{stats.open}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
               Critical
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.critical}</div>
+            <div className="text-xl font-bold">{stats.critical}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
               High Priority
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.high}</div>
+            <div className="text-xl font-bold">{stats.high}</div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Cases</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Case ID</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Employee</TableHead>
-                <TableHead>Transaction</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>MCC</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Assigned To</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {cases.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground">
-                    No cases found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                cases.map((c) => (
-                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50">
-                    <TableCell>
-                      <Link
-                        href={`/cases/${c.id}`}
-                        className="font-mono text-sm hover:underline text-blue-600"
-                      >
-                        {c.caseId}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{getSeverityBadge(c.severity)}</TableCell>
-                    <TableCell>{getStatusBadge(c.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{c.employee.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {c.employee.department}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-mono text-xs">{c.transaction.transactionId || 'N/A'}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {c.transaction.merchantName}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      ₩{c.transaction.amount.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <span className="font-mono text-xs">{c.transaction.mccCode}</span>
-                        {c.transaction.mccRiskGroup && (
-                          <Badge
-                            variant="outline"
-                            className={
-                              c.transaction.mccRiskGroup === 'BLACK'
-                                ? 'bg-red-50 text-red-700 border-red-300 text-xs'
-                                : c.transaction.mccRiskGroup === 'GRAY'
-                                ? 'bg-yellow-50 text-yellow-700 border-yellow-300 text-xs'
-                                : 'bg-green-50 text-green-700 border-green-300 text-xs'
-                            }
-                          >
-                            {c.transaction.mccRiskGroup}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(c.createdAt).toLocaleDateString('ko-KR')}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{c.assignedTo}</span>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <CasesTable cases={cases} />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
 /**
  * Convert Neo4j Integer/BigInt to number
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toNumber(value: any): number {
   if (typeof value === 'object' && value !== null && 'toNumber' in value) {
     return value.toNumber();
@@ -69,6 +70,7 @@ function getNodeSize(type: string, amount?: number): number {
 /**
  * Transform Case Network data from Neo4j to GraphData
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function transformCaseNetwork(data: any): GraphData {
   const nodes: GraphNode[] = [];
   const links: GraphLink[] = [];
@@ -213,8 +215,10 @@ export function transformCaseNetwork(data: any): GraphData {
   // Add related transactions (30-day window)
   if (relatedTransactions && employee) {
     relatedTransactions
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((rt: any) => rt.transaction)
-      .forEach((rt: any, idx: number) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .forEach((rt: any) => {
         const relTx = rt.transaction;
         const relMerch = rt.merchant;
         const relTxId = relTx.properties.id;

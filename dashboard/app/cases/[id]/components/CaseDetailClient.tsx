@@ -21,15 +21,84 @@ import {
   Store,
   ChevronDown,
   Scale,
-  FileText,
   Network,
   FileSearch,
 } from 'lucide-react';
 import { CaseNetwork } from './CaseNetwork';
 
+interface Transaction {
+  id?: string;
+  transactionId: string;
+  amount: number;
+  currency?: string;
+  transactionDate: string;
+  transactedAt?: string;
+  merchantName: string;
+  merchant?: {
+    name?: string;
+    city?: string;
+    country?: string;
+  };
+  mcc?: {
+    code?: string;
+    description?: string;
+  };
+  similarity?: {
+    score: number;
+    hoursDiff?: number;
+    amountDiffPct?: number;
+  };
+  [key: string]: unknown;
+}
+
+interface CaseDetail {
+  caseId: string;
+  caseType?: string;
+  severity: string;
+  status: string;
+  description: string;
+  createdAt: string;
+  assignedTo: string;
+  detectionReasoning?: {
+    reason: string;
+    total_amount?: number;
+    total_transactions?: number;
+    [key: string]: unknown;
+  };
+  employee: {
+    name: string;
+    department: string;
+    [key: string]: unknown;
+  };
+  transaction: Transaction;
+  merchant?: {
+    name?: string;
+    city?: string;
+    country?: string;
+    [key: string]: unknown;
+  };
+  mcc: {
+    code: string;
+    category: string;
+    description: string;
+    riskGroup: string;
+  };
+  taxRules: Array<{
+    ruleId: string;
+    name: string;
+    legalReference: string;
+    lawName?: string;
+    article?: string;
+    description?: string;
+    consequence?: string;
+    url?: string;
+  }>;
+  [key: string]: unknown;
+}
+
 interface CaseDetailClientProps {
-  caseDetail: any;
-  relatedTransactions: any[];
+  caseDetail: CaseDetail;
+  relatedTransactions: Transaction[];
   riskScore: number;
 }
 
@@ -176,7 +245,7 @@ export function CaseDetailClient({
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {caseDetail.taxRules.map((rule: any, idx: number) => (
+              {caseDetail.taxRules.map((rule, idx) => (
                 <Collapsible key={idx}>
                   <div className="rounded-md border bg-muted/30 p-3">
                     <CollapsibleTrigger className="w-full">
@@ -239,7 +308,7 @@ export function CaseDetailClient({
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {relatedTransactions.map((tx: any, idx: number) => (
+                {relatedTransactions.map((tx, idx) => (
                   <div key={idx} className="rounded-md border bg-muted/30 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -261,22 +330,27 @@ export function CaseDetailClient({
                             MCC {tx.mcc.code}: {tx.mcc.description}
                           </div>
                         )}
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {new Date(tx.transactedAt).toLocaleString('ko-KR')}
-                        </div>
+                        {tx.transactedAt && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(tx.transactedAt).toLocaleString('ko-KR')}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex flex-col gap-1 items-end">
-                        <Badge
-                          variant={tx.similarity.score >= 90 ? "destructive" : "outline"}
-                          className="text-xs whitespace-nowrap"
-                        >
-                          {tx.similarity.score}% Match
-                        </Badge>
-                        <div className="text-xs text-muted-foreground text-right">
-                          {Math.abs(tx.similarity.hoursDiff)}h apart<br/>
-                          {tx.similarity.amountDiffPct.toFixed(1)}% diff
+                      {tx.similarity && (
+                        <div className="flex flex-col gap-1 items-end">
+                          <Badge
+                            variant={tx.similarity.score >= 90 ? "destructive" : "outline"}
+                            className="text-xs whitespace-nowrap"
+                          >
+                            {tx.similarity.score}% Match
+                          </Badge>
+                          <div className="text-xs text-muted-foreground text-right">
+                            {tx.similarity.hoursDiff !== undefined && `${Math.abs(tx.similarity.hoursDiff)}h apart`}
+                            {tx.similarity.hoursDiff !== undefined && tx.similarity.amountDiffPct !== undefined && <br/>}
+                            {tx.similarity.amountDiffPct !== undefined && `${tx.similarity.amountDiffPct.toFixed(1)}% diff`}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 ))}

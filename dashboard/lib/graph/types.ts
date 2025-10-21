@@ -25,7 +25,7 @@ export interface GraphNode {
   department?: string;
 
   // Metadata
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface GraphLink {
@@ -43,7 +43,7 @@ export interface GraphLink {
   timestamp?: string;
 
   // Metadata
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface GraphData {

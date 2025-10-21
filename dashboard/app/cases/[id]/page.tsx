@@ -1,15 +1,10 @@
 import { getDriver } from '@/lib/neo4j/driver';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  CheckCircle,
-  XCircle,
-  MoreHorizontal,
-} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { CaseDetailClient } from './components/CaseDetailClient';
 import { getSeverityBadge, getStatusBadge } from '@/lib/utils/badge-helpers';
+import { QuickActions } from './components/QuickActions';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -54,8 +49,9 @@ async function getCaseDetail(caseId: string) {
     if (props.detection_reasoning) {
       try {
         reasoning = JSON.parse(props.detection_reasoning);
-      } catch (e) {
-        console.error('Failed to parse detection_reasoning');
+      } catch {
+        // Failed to parse detection reasoning
+        reasoning = null;
       }
     }
 
@@ -95,14 +91,14 @@ async function getCaseDetail(caseId: string) {
         description: mccNode.properties.description,
         riskGroup: mccNode.properties.risk_group,
       } : null,
-      taxRules: taxRulesNodes.filter((r: any) => r).map((r: any) => ({
-        ruleId: r.properties.ruleId,
-        name: r.properties.name,
-        lawName: r.properties.lawName,
-        article: r.properties.article,
-        description: r.properties.description,
-        consequence: r.properties.consequence,
-        url: r.properties.url,
+      taxRules: taxRulesNodes.filter((r) => r && r.properties).map((r) => ({
+        ruleId: r.properties.ruleId || '',
+        name: r.properties.name || '',
+        lawName: r.properties.lawName || '',
+        article: r.properties.article || '',
+        description: r.properties.description || '',
+        consequence: r.properties.consequence || '',
+        url: r.properties.url || '',
       })),
     };
   } finally {
@@ -198,13 +194,6 @@ function getRiskScore(severity: string): number {
   }
 }
 
-function getRiskColor(score: number): string {
-  if (score >= 80) return 'text-red-600';
-  if (score >= 60) return 'text-orange-600';
-  if (score >= 40) return 'text-yellow-600';
-  return 'text-green-600';
-}
-
 export default async function CaseDetailPage({ params }: PageProps) {
   const { id } = await params;
   const caseDetail = await getCaseDetail(id);
@@ -256,20 +245,13 @@ export default async function CaseDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Action Buttons - Primary CTAs */}
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="default">
-              <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-              Approve
-            </Button>
-            <Button size="sm" variant="outline">
-              <XCircle className="h-3.5 w-3.5 mr-1.5" />
-              Reject
-            </Button>
-            <Button size="sm" variant="ghost">
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          {/* Action Buttons - Quick Actions */}
+          <QuickActions
+            caseId={caseDetail.caseId}
+            caseType={caseDetail.caseType}
+            employeeName={caseDetail.employee?.name}
+            status={caseDetail.status}
+          />
         </div>
       </div>
 
