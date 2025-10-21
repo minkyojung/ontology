@@ -25,7 +25,7 @@ export function ForceGraph({
   height = 600,
 }: ForceGraphProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fgRef = useRef<any>();
+  const fgRef = useRef<any>(null);
   const [highlightNodes, setHighlightNodes] = useState(new Set());
   const [highlightLinks, setHighlightLinks] = useState(new Set());
   const [hoverNode, setHoverNode] = useState<GraphNode | null>(null);
@@ -38,28 +38,29 @@ export function ForceGraph({
   }, [data]);
 
   const handleNodeHover = useCallback(
-    (node: GraphNode | null) => {
-      if (node) {
+    (node: unknown) => {
+      const graphNode = node as GraphNode | null;
+      if (graphNode) {
         // Highlight node and its connections
         const neighbors = new Set<string>();
         const links = new Set<string>();
 
         data.links.forEach((link) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if (link.source === node.id || (typeof link.source === 'object' && (link.source as any).id === node.id)) {
+          if (link.source === graphNode.id || (typeof link.source === 'object' && (link.source as any).id === graphNode.id)) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             neighbors.add(typeof link.target === 'string' ? link.target : (link.target as any).id);
             links.add(`${link.source}-${link.target}`);
           }
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if (link.target === node.id || (typeof link.target === 'object' && (link.target as any).id === node.id)) {
+          if (link.target === graphNode.id || (typeof link.target === 'object' && (link.target as any).id === graphNode.id)) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             neighbors.add(typeof link.source === 'string' ? link.source : (link.source as any).id);
             links.add(`${link.source}-${link.target}`);
           }
         });
 
-        neighbors.add(node.id);
+        neighbors.add(graphNode.id);
         setHighlightNodes(neighbors);
         setHighlightLinks(links);
       } else {
@@ -67,15 +68,16 @@ export function ForceGraph({
         setHighlightLinks(new Set());
       }
 
-      setHoverNode(node);
-      onNodeHover?.(node);
+      setHoverNode(graphNode);
+      onNodeHover?.(graphNode);
     },
     [data.links, onNodeHover]
   );
 
   const handleNodeClick = useCallback(
-    (node: GraphNode) => {
-      onNodeClick?.(node);
+    (node: unknown) => {
+      const graphNode = node as GraphNode;
+      onNodeClick?.(graphNode);
     },
     [onNodeClick]
   );

@@ -178,20 +178,23 @@ async function getRelatedTransactions(caseId: string, employeeId: string, transa
 
       return {
         id: relatedNode.properties.id,
+        transactionId: relatedNode.properties.id,
         amount: typeof relatedNode.properties.amount === 'object' && relatedNode.properties.amount !== null && 'toNumber' in relatedNode.properties.amount
           ? relatedNode.properties.amount.toNumber()
           : Number(relatedNode.properties.amount),
         currency: relatedNode.properties.currency || 'KRW',
         transactedAt: relatedNode.properties.transacted_at?.toString(),
+        transactionDate: relatedNode.properties.transacted_at?.toString() || 'N/A',
+        merchantName: merchantNode?.properties?.name || 'Unknown Merchant',
         category: relatedNode.properties.category,
         merchant: merchantNode ? {
           name: merchantNode.properties.name,
           city: merchantNode.properties.city,
-        } : null,
+        } : undefined,
         mcc: mccNode ? {
           code: mccNode.properties.code,
           description: mccNode.properties.description,
-        } : null,
+        } : undefined,
         similarity: {
           hoursDiff: Math.round(hoursDiffNum),
           amountDiffPct: Math.round(amountDiffPctNum),
