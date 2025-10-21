@@ -1,554 +1,284 @@
-'use client';
-
-import { use, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { getDriver } from '@/lib/neo4j/driver';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  MoreHorizontal,
+} from 'lucide-react';
+import { CaseDetailClient } from './components/CaseDetailClient';
+import { getSeverityBadge, getStatusBadge } from '@/lib/utils/badge-helpers';
 
-interface DetectionReasoning {
-  matched_rules: Array<{
-    rule_type: string;
-    rule_name: string;
-    mcc_code?: string;
-    mcc_description?: string;
-    risk_level?: string;
-    weight: number;
-    source: string;
-    detail: string;
-  }>;
-  risk_factors: {
-    mcc_risk?: string;
-    amount?: number;
-    merchant_trust_score?: number;
-  };
-  final_score: {
-    total_score: number;
-    threshold: number;
-    recommendation: string;
-  };
-  explanation: string;
+interface PageProps {
+  params: Promise<{ id: string }>;
 }
 
-interface CaseDetail {
-  id: string;
-  caseId: string;
-  severity: string;
-  status: string;
-  description: string;
-  assignedTo: string;
-  detectionReasoning?: DetectionReasoning | null;
-  createdAt: string;
-  employee: {
-    id: string;
-    name: string;
-    department: string;
-    email: string;
-  };
-  transaction: {
-    transactionId: string;
-    amount: number;
-    currency: string;
-    transactionDate: string;
-    description: string;
-    riskScore: number;
-    merchantName: string;
-    merchantCity: string;
-    merchantCountry: string;
-  };
-  mcc: {
-    code: string;
-    category: string;
-    description: string;
-    riskGroup: string;
-  };
-  taxRules: Array<{
-    ruleId: string;
-    name: string;
-    legalReference: string;
-    description: string;
-  }>;
-}
+async function getCaseDetail(caseId: string) {
+  const driver = getDriver();
+  const session = driver.session();
 
-async function getCaseDetail(id: string): Promise<CaseDetail> {
-  const res = await fetch(`http://localhost:3004/api/cases/${id}`, {
-    cache: 'no-store'
-  });
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch case detail');
-  }
-
-  return res.json();
-}
-
-function getSeverityBadge(severity: string) {
-  switch (severity.toUpperCase()) {
-    case 'CRITICAL':
-      return <Badge variant="destructive" className="text-lg px-3 py-1">CRITICAL</Badge>;
-    case 'HIGH':
-      return <Badge variant="default" className="bg-orange-600 text-lg px-3 py-1">HIGH</Badge>;
-    case 'MEDIUM':
-      return <Badge variant="default" className="bg-yellow-600 text-lg px-3 py-1">MEDIUM</Badge>;
-    case 'LOW':
-      return <Badge variant="outline" className="text-lg px-3 py-1">LOW</Badge>;
-    default:
-      return <Badge variant="secondary" className="text-lg px-3 py-1">{severity}</Badge>;
-  }
-}
-
-function getStatusBadge(status: string) {
-  switch (status.toUpperCase()) {
-    case 'OPEN':
-      return <Badge variant="default" className="bg-blue-600">OPEN</Badge>;
-    case 'IN_PROGRESS':
-      return <Badge variant="default" className="bg-purple-600">IN PROGRESS</Badge>;
-    case 'RESOLVED':
-      return <Badge variant="default" className="bg-green-600">RESOLVED</Badge>;
-    case 'CLOSED':
-      return <Badge variant="secondary">CLOSED</Badge>;
-    case 'REJECTED':
-      return <Badge variant="outline" className="text-red-600">REJECTED</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
-}
-
-export default function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const router = useRouter();
-  const [caseDetail, setCaseDetail] = useState<CaseDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  // Load case detail
-  useState(() => {
-    getCaseDetail(id)
-      .then(data => {
-        setCaseDetail(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  });
-
-  const handleAction = async (action: 'approve' | 'reject' | 'hold') => {
-    setActionLoading(true);
-
-    try {
-      const res = await fetch(`http://localhost:3004/api/cases/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action,
-          comment: `Case ${action}d via dashboard`
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to update case');
-      }
-
-      // Refresh the page
-      router.refresh();
-      window.location.reload();
-    } catch (error) {
-      console.error('Error updating case:', error);
-      alert('Failed to update case');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="p-8">
-        <div className="text-center">Loading...</div>
-      </div>
+  try {
+    // Get case with all related entities
+    const result = await session.run(
+      `
+      MATCH (c:Case {case_id: $caseId})
+      OPTIONAL MATCH (c)-[:INVOLVES_TRANSACTION]->(t:Transaction)
+      OPTIONAL MATCH (e:Employee)-[:MADE_TRANSACTION]->(t)
+      OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+      OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
+      OPTIONAL MATCH (c)-[:CITES_RULE]->(rule:TaxRule)
+      RETURN c, t, e, m, mcc, collect(DISTINCT rule) as taxRules
+      LIMIT 1
+      `,
+      { caseId }
     );
+
+    if (result.records.length === 0) {
+      return null;
+    }
+
+    const record = result.records[0];
+    const caseNode = record.get('c');
+    const txnNode = record.get('t');
+    const empNode = record.get('e');
+    const merchNode = record.get('m');
+    const mccNode = record.get('mcc');
+    const taxRulesNodes = record.get('taxRules');
+
+    const props = caseNode.properties;
+
+    // Parse detection_reasoning if it exists
+    let reasoning = null;
+    if (props.detection_reasoning) {
+      try {
+        reasoning = JSON.parse(props.detection_reasoning);
+      } catch (e) {
+        console.error('Failed to parse detection_reasoning');
+      }
+    }
+
+    return {
+      caseId: props.case_id,
+      caseType: props.case_type,
+      severity: props.severity,
+      status: props.status,
+      description: props.description,
+      assignedTo: props.assigned_to,
+      createdAt: props.created_at?.toString(),
+      detectionReasoning: reasoning,
+      employee: empNode ? {
+        id: empNode.properties.id,
+        name: empNode.properties.name,
+        email: empNode.properties.email,
+        department: empNode.properties.department,
+        jobTitle: empNode.properties.job_title,
+      } : null,
+      transaction: txnNode ? {
+        id: txnNode.properties.id,
+        amount: typeof txnNode.properties.amount === 'object' && txnNode.properties.amount !== null && 'toNumber' in txnNode.properties.amount
+          ? txnNode.properties.amount.toNumber()
+          : Number(txnNode.properties.amount),
+        currency: txnNode.properties.currency || 'KRW',
+        transactedAt: txnNode.properties.transacted_at?.toString(),
+        category: txnNode.properties.category,
+      } : null,
+      merchant: merchNode ? {
+        name: merchNode.properties.name,
+        address: merchNode.properties.address,
+        city: merchNode.properties.city,
+        country: merchNode.properties.country || 'Korea',
+      } : null,
+      mcc: mccNode ? {
+        code: mccNode.properties.code,
+        description: mccNode.properties.description,
+        riskGroup: mccNode.properties.risk_group,
+      } : null,
+      taxRules: taxRulesNodes.filter((r: any) => r).map((r: any) => ({
+        ruleId: r.properties.ruleId,
+        name: r.properties.name,
+        lawName: r.properties.lawName,
+        article: r.properties.article,
+        description: r.properties.description,
+        consequence: r.properties.consequence,
+        url: r.properties.url,
+      })),
+    };
+  } finally {
+    await session.close();
   }
+}
+
+async function getRelatedTransactions(caseId: string, employeeId: string, transactionId: string, amount: number, timestamp: string) {
+  const driver = getDriver();
+  const session = driver.session();
+
+  try {
+    // Ontology-based pattern detection query
+    const result = await session.run(
+      `
+      MATCH (e:Employee {id: $employeeId})-[:MADE_TRANSACTION]->(related:Transaction)
+      WHERE related.id <> $transactionId
+        AND related.transacted_at IS NOT NULL
+        AND $timestamp IS NOT NULL
+      WITH related,
+           duration.between(
+             datetime(related.transacted_at),
+             datetime($timestamp)
+           ).hours as hoursDiff,
+           abs(related.amount - $amount) as amountDiff,
+           abs(related.amount - $amount) / toFloat($amount) * 100 as amountDiffPct
+      WHERE abs(hoursDiff) <= 24
+        AND (amountDiff <= 10000 OR amountDiffPct <= 15)
+      OPTIONAL MATCH (related)-[:AT_MERCHANT]->(m:Merchant)
+      OPTIONAL MATCH (m)-[:HAS_MCC]->(mcc:MCC)
+      RETURN related, m, mcc, hoursDiff, amountDiffPct
+      ORDER BY abs(hoursDiff), amountDiffPct
+      LIMIT 10
+      `,
+      { employeeId, transactionId, amount, timestamp }
+    );
+
+    return result.records.map(record => {
+      const relatedNode = record.get('related');
+      const merchantNode = record.get('m');
+      const mccNode = record.get('mcc');
+      const hoursDiff = record.get('hoursDiff');
+      const amountDiffPct = record.get('amountDiffPct');
+
+      // Convert Neo4j Integer/BigInt to JavaScript number
+      const hoursDiffNum = typeof hoursDiff === 'object' && hoursDiff !== null && 'toNumber' in hoursDiff
+        ? hoursDiff.toNumber()
+        : Number(hoursDiff);
+      const amountDiffPctNum = typeof amountDiffPct === 'object' && amountDiffPct !== null && 'toNumber' in amountDiffPct
+        ? amountDiffPct.toNumber()
+        : Number(amountDiffPct);
+
+      return {
+        id: relatedNode.properties.id,
+        amount: typeof relatedNode.properties.amount === 'object' && relatedNode.properties.amount !== null && 'toNumber' in relatedNode.properties.amount
+          ? relatedNode.properties.amount.toNumber()
+          : Number(relatedNode.properties.amount),
+        currency: relatedNode.properties.currency || 'KRW',
+        transactedAt: relatedNode.properties.transacted_at?.toString(),
+        category: relatedNode.properties.category,
+        merchant: merchantNode ? {
+          name: merchantNode.properties.name,
+          city: merchantNode.properties.city,
+        } : null,
+        mcc: mccNode ? {
+          code: mccNode.properties.code,
+          description: mccNode.properties.description,
+        } : null,
+        similarity: {
+          hoursDiff: Math.round(hoursDiffNum),
+          amountDiffPct: Math.round(amountDiffPctNum),
+          score: Math.max(0, 100 - Math.abs(hoursDiffNum) - amountDiffPctNum)
+        }
+      };
+    });
+  } finally {
+    await session.close();
+  }
+}
+
+function getRiskScore(severity: string): number {
+  switch (severity?.toUpperCase()) {
+    case 'CRITICAL':
+      return 95;
+    case 'HIGH':
+      return 75;
+    case 'MEDIUM':
+      return 50;
+    case 'LOW':
+      return 25;
+    default:
+      return 0;
+  }
+}
+
+function getRiskColor(score: number): string {
+  if (score >= 80) return 'text-red-600';
+  if (score >= 60) return 'text-orange-600';
+  if (score >= 40) return 'text-yellow-600';
+  return 'text-green-600';
+}
+
+export default async function CaseDetailPage({ params }: PageProps) {
+  const { id } = await params;
+  const caseDetail = await getCaseDetail(id);
 
   if (!caseDetail) {
     return (
       <div className="p-8">
-        <div className="text-center text-red-600">Case not found</div>
+        <div className="text-center text-red-600 text-xl mb-4">Case not found</div>
+        <div className="text-center">
+          <Link href="/cases" className="text-blue-600 hover:underline">
+            ← Back to Cases
+          </Link>
+        </div>
       </div>
     );
   }
 
+  // Fetch related transactions for pattern detection (ontology-based)
+  const relatedTransactions = caseDetail.employee && caseDetail.transaction
+    ? await getRelatedTransactions(
+        id,
+        caseDetail.employee.id,
+        caseDetail.transaction.id,
+        caseDetail.transaction.amount,
+        caseDetail.transaction.transactedAt || ''
+      )
+    : [];
+
+  const riskScore = getRiskScore(caseDetail.severity);
+
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              Case {caseDetail.caseId}
+    <div className="min-h-screen bg-background">
+      {/* Header Bar - Action First */}
+      <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-12 items-center justify-between px-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/cases"
+              className="inline-flex items-center gap-1.5 text-sm font-medium hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back
+            </Link>
+            <Separator orientation="vertical" className="h-4" />
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-semibold">{caseDetail.caseId}</h1>
               {getSeverityBadge(caseDetail.severity)}
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Created: {new Date(caseDetail.createdAt).toLocaleString('ko-KR')}
-            </p>
+              {getStatusBadge(caseDetail.status)}
+            </div>
           </div>
-          <div className="flex gap-2">
-            {getStatusBadge(caseDetail.status)}
+
+          {/* Action Buttons - Primary CTAs */}
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="default">
+              <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+              Approve
+            </Button>
+            <Button size="sm" variant="outline">
+              <XCircle className="h-3.5 w-3.5 mr-1.5" />
+              Reject
+            </Button>
+            <Button size="sm" variant="ghost">
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Action Buttons */}
-      {caseDetail.status === 'OPEN' && (
-        <Card className="mb-6 bg-blue-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Case Actions
-            </CardTitle>
-            <CardDescription>Review and take action on this case</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => handleAction('approve')}
-                disabled={actionLoading}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Approve
-              </Button>
-              <Button
-                onClick={() => handleAction('reject')}
-                disabled={actionLoading}
-                variant="destructive"
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                Reject
-              </Button>
-              <Button
-                onClick={() => handleAction('hold')}
-                disabled={actionLoading}
-                variant="outline"
-              >
-                <Clock className="mr-2 h-4 w-4" />
-                Hold for Review
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Case Description */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Case Description</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm">{caseDetail.description}</p>
-          <div className="mt-4 flex gap-4">
-            <div>
-              <span className="text-sm text-muted-foreground">Assigned To:</span>
-              <span className="ml-2 font-medium">{caseDetail.assignedTo}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Detection Reasoning */}
-      {caseDetail.detectionReasoning && (
-        <Card className="mb-6 border-yellow-200 bg-yellow-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              탐지 근거 (Detection Reasoning)
-            </CardTitle>
-            <CardDescription>
-              이 케이스가 탐지된 이유와 근거를 확인하세요
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Explanation */}
-            <div className="bg-white rounded-lg p-4 border border-yellow-300">
-              <p className="text-sm font-medium text-yellow-900">
-                {caseDetail.detectionReasoning.explanation}
-              </p>
-            </div>
-
-            {/* Matched Rules */}
-            <div>
-              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                🔴 Matched Rules ({caseDetail.detectionReasoning.matched_rules.length})
-              </h4>
-              <div className="space-y-3">
-                {caseDetail.detectionReasoning.matched_rules.map((rule, idx) => (
-                  <div key={idx} className="bg-white rounded-lg p-4 border border-gray-200">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h5 className="font-semibold text-gray-900">{rule.rule_name}</h5>
-                        <p className="text-xs text-gray-500 mt-1">Type: {rule.rule_type}</p>
-                      </div>
-                      <Badge variant="destructive">
-                        Weight: {rule.weight}
-                      </Badge>
-                    </div>
-                    <Separator className="my-2" />
-                    <p className="text-sm text-gray-700 mb-2">{rule.detail}</p>
-                    {rule.mcc_code && (
-                      <div className="mt-2 space-y-1">
-                        <div className="text-xs">
-                          <span className="text-gray-500">MCC Code:</span>
-                          <span className="ml-2 font-mono font-semibold">{rule.mcc_code}</span>
-                        </div>
-                        <div className="text-xs">
-                          <span className="text-gray-500">Description:</span>
-                          <span className="ml-2">{rule.mcc_description}</span>
-                        </div>
-                        <div className="text-xs">
-                          <span className="text-gray-500">Risk Level:</span>
-                          <Badge variant="destructive" className="ml-2">
-                            {rule.risk_level}
-                          </Badge>
-                        </div>
-                      </div>
-                    )}
-                    <div className="mt-3 text-xs text-gray-500">
-                      <span>Source:</span>
-                      <code className="ml-2 bg-gray-100 px-2 py-1 rounded">{rule.source}</code>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Risk Factors */}
-            <div>
-              <h4 className="text-sm font-semibold mb-3">📊 Risk Factors</h4>
-              <div className="bg-white rounded-lg p-4 border border-gray-200 grid grid-cols-3 gap-4">
-                {caseDetail.detectionReasoning.risk_factors.mcc_risk && (
-                  <div>
-                    <div className="text-xs text-gray-500">MCC Risk</div>
-                    <div className="font-semibold text-red-600">
-                      {caseDetail.detectionReasoning.risk_factors.mcc_risk}
-                    </div>
-                  </div>
-                )}
-                {caseDetail.detectionReasoning.risk_factors.amount && (
-                  <div>
-                    <div className="text-xs text-gray-500">Amount</div>
-                    <div className="font-semibold">
-                      ₩{caseDetail.detectionReasoning.risk_factors.amount.toLocaleString()}
-                    </div>
-                  </div>
-                )}
-                {caseDetail.detectionReasoning.risk_factors.merchant_trust_score !== undefined && (
-                  <div>
-                    <div className="text-xs text-gray-500">Merchant Trust Score</div>
-                    <div className="font-semibold">
-                      {caseDetail.detectionReasoning.risk_factors.merchant_trust_score}/100
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Final Score */}
-            <div>
-              <h4 className="text-sm font-semibold mb-3">🎯 Final Score</h4>
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <div className="text-2xl font-bold text-red-600">
-                      {caseDetail.detectionReasoning.final_score.total_score}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Threshold: {caseDetail.detectionReasoning.final_score.threshold}
-                    </div>
-                  </div>
-                  <Badge
-                    variant={
-                      caseDetail.detectionReasoning.final_score.recommendation === 'FLAGGED'
-                        ? 'destructive'
-                        : 'secondary'
-                    }
-                    className="text-lg px-4 py-2"
-                  >
-                    {caseDetail.detectionReasoning.final_score.recommendation}
-                  </Badge>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 mt-3">
-                  <div
-                    className="bg-red-600 h-3 rounded-full transition-all"
-                    style={{
-                      width: `${Math.min(
-                        (caseDetail.detectionReasoning.final_score.total_score / 100) * 100,
-                        100
-                      )}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* System Note */}
-            <div className="bg-white rounded-lg p-3 border border-gray-200 text-xs text-gray-600">
-              <strong>Note:</strong> 이 탐지는 AI가 아닌 <strong>룰 기반 시스템</strong>에 의해 생성되었습니다.
-              모든 룰은 한국 세법(법인세법 제27조 등) 및 내부 정책(MCC 블랙리스트/그레이리스트)을 기반으로 합니다.
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2 mb-6">
-        {/* Employee Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Employee Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div>
-                <span className="text-sm text-muted-foreground">Name:</span>
-                <span className="ml-2 font-medium">{caseDetail.employee.name}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Employee ID:</span>
-                <span className="ml-2 font-mono text-sm">{caseDetail.employee.id}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Department:</span>
-                <span className="ml-2">{caseDetail.employee.department}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Email:</span>
-                <span className="ml-2">{caseDetail.employee.email}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Transaction Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Transaction Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div>
-                <span className="text-sm text-muted-foreground">Transaction ID:</span>
-                <span className="ml-2 font-mono text-sm">{caseDetail.transaction.transactionId}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Amount:</span>
-                <span className="ml-2 font-bold text-lg">
-                  {caseDetail.transaction.currency} {caseDetail.transaction.amount.toLocaleString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Date:</span>
-                <span className="ml-2">{caseDetail.transaction.transactionDate}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Risk Score:</span>
-                <span className="ml-2 font-medium text-red-600">
-                  {(caseDetail.transaction.riskScore * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Description:</span>
-                <span className="ml-2">{caseDetail.transaction.description}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 mb-6">
-        {/* Merchant & MCC Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Merchant & MCC Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div>
-                <span className="text-sm text-muted-foreground">Merchant:</span>
-                <span className="ml-2 font-medium">{caseDetail.transaction.merchantName}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Location:</span>
-                <span className="ml-2">
-                  {caseDetail.transaction.merchantCity}, {caseDetail.transaction.merchantCountry}
-                </span>
-              </div>
-
-              <Separator />
-
-              <div>
-                <span className="text-sm text-muted-foreground">MCC Code:</span>
-                <span className="ml-2 font-mono">{caseDetail.mcc.code}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Category:</span>
-                <span className="ml-2">{caseDetail.mcc.category}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Description:</span>
-                <span className="ml-2 text-sm">{caseDetail.mcc.description}</span>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Risk Group:</span>
-                <Badge
-                  variant="outline"
-                  className={
-                    caseDetail.mcc.riskGroup === 'BLACK'
-                      ? 'bg-red-50 text-red-700 border-red-300 ml-2'
-                      : caseDetail.mcc.riskGroup === 'GRAY'
-                      ? 'bg-yellow-50 text-yellow-700 border-yellow-300 ml-2'
-                      : 'bg-green-50 text-green-700 border-green-300 ml-2'
-                  }
-                >
-                  {caseDetail.mcc.riskGroup}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tax Rules */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Applicable Tax Rules</CardTitle>
-            <CardDescription>Legal regulations violated by this transaction</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {caseDetail.taxRules.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No tax rules applicable</p>
-            ) : (
-              <div className="space-y-4">
-                {caseDetail.taxRules.map((rule) => (
-                  <div key={rule.ruleId} className="border rounded-lg p-3 bg-red-50 border-red-200">
-                    <div className="font-medium text-sm mb-1">{rule.name}</div>
-                    {rule.description && (
-                      <div className="text-xs text-muted-foreground mb-2">{rule.description}</div>
-                    )}
-                    {rule.legalReference && (
-                      <div className="text-xs">
-                        <span className="font-medium">Legal Reference:</span>
-                        <span className="ml-1 text-muted-foreground">{rule.legalReference}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Main Content - Dynamic import to avoid bundling issues */}
+      <CaseDetailClient
+        caseDetail={caseDetail}
+        relatedTransactions={relatedTransactions}
+        riskScore={riskScore}
+      />
     </div>
   );
 }
