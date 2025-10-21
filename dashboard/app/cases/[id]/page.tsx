@@ -70,36 +70,61 @@ async function getCaseDetail(caseId: string) {
         email: empNode.properties.email,
         department: empNode.properties.department,
         jobTitle: empNode.properties.job_title,
-      } : null,
+      } : {
+        name: 'Unknown Employee',
+        department: 'N/A',
+      },
       transaction: txnNode ? {
         id: txnNode.properties.id,
+        transactionId: txnNode.properties.id,
         amount: typeof txnNode.properties.amount === 'object' && txnNode.properties.amount !== null && 'toNumber' in txnNode.properties.amount
           ? txnNode.properties.amount.toNumber()
           : Number(txnNode.properties.amount),
         currency: txnNode.properties.currency || 'KRW',
+        transactionDate: txnNode.properties.transacted_at?.toString() || 'N/A',
         transactedAt: txnNode.properties.transacted_at?.toString(),
+        merchantName: merchNode?.properties?.name || 'Unknown Merchant',
         category: txnNode.properties.category,
-      } : null,
+      } : {
+        id: 'N/A',
+        transactionId: 'N/A',
+        amount: 0,
+        currency: 'KRW',
+        transactionDate: 'N/A',
+        transactedAt: 'N/A',
+        merchantName: 'N/A',
+        category: 'N/A',
+      },
       merchant: merchNode ? {
         name: merchNode.properties.name,
         address: merchNode.properties.address,
         city: merchNode.properties.city,
         country: merchNode.properties.country || 'Korea',
-      } : null,
+      } : undefined,
       mcc: mccNode ? {
         code: mccNode.properties.code,
         description: mccNode.properties.description,
         riskGroup: mccNode.properties.risk_group,
-      } : null,
-      taxRules: taxRulesNodes.filter((r) => r && r.properties).map((r) => ({
-        ruleId: r.properties.ruleId || '',
-        name: r.properties.name || '',
-        lawName: r.properties.lawName || '',
-        article: r.properties.article || '',
-        description: r.properties.description || '',
-        consequence: r.properties.consequence || '',
-        url: r.properties.url || '',
-      })),
+        category: mccNode.properties.category || 'N/A',
+      } : {
+        code: 'N/A',
+        category: 'N/A',
+        description: 'N/A',
+        riskGroup: 'N/A',
+      },
+      taxRules: taxRulesNodes
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((r: any): r is { properties: Record<string, unknown> } => r && r.properties)
+        .map((r: { properties: Record<string, unknown> }) => ({
+          ruleId: r.properties.ruleId || '',
+          name: r.properties.name || '',
+          legalReference: r.properties.legalReference || r.properties.lawName || '',
+          lawName: r.properties.lawName || '',
+          article: r.properties.article || '',
+          description: r.properties.description || '',
+          consequence: r.properties.consequence || '',
+          url: r.properties.url || '',
+        })),
     };
   } finally {
     await session.close();
