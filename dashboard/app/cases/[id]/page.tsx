@@ -6,6 +6,8 @@ import { CaseDetailClient } from './components/CaseDetailClient';
 import { getSeverityBadge, getStatusBadge } from '@/lib/utils/badge-helpers';
 import { QuickActions } from './components/QuickActions';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

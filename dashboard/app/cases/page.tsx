@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CasesTable } from './components/CasesTable';
 import { getDriver } from '@/lib/neo4j/driver';
 
+export const dynamic = 'force-dynamic';
+
 interface Case {
   id: string;
   caseId: string;
