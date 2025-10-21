@@ -1,0 +1,58 @@
+name: Portfolio Auto-Generation
+
+on:
+  push:
+    branches: [main, ontology-setup]
+  workflow_dispatch:
+
+jobs:
+  generate-portfolio:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 전체 git history 가져오기
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Node dependencies
+        run: |
+          npm install -g conventional-changelog-cli
+
+      - name: Install Python dependencies
+        run: |
+          pip install gitpython pyyaml jinja2
+
+      - name: Generate CHANGELOG.md
+        run: |
+          conventional-changelog -p angular -i CHANGELOG.md -s
+
+      - name: Generate Project Statistics
+        run: |
+          python .github/scripts/generate_stats.py
+
+      - name: Generate Weekly Report
+        run: |
+          python .github/scripts/generate_weekly_report.py
+
+      - name: Update Portfolio README
+        run: |
+          python .github/scripts/update_portfolio_readme.py
+
+      - name: Commit and Push
+        run: |
+          git config user.name "Portfolio Bot"
+          git config user.email "bot@github.com"
+          git add portfolio/ CHANGELOG.md
+          git diff --staged --quiet || git commit -m "docs(portfolio): auto-update portfolio [skip ci]"
+          git push || echo "No changes to push"

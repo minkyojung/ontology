@@ -1,0 +1,354 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Golden Dataset for Evaluation",
+  "description": "Labeled dataset of past transactions for precision/recall evaluation",
+  "version": "1.0.0",
+  "created_at": "2025-01-01",
+  "source": "Internal audit findings (2024 Q1-Q4)",
+  "total_samples": 300,
+
+  "dataset_composition": {
+    "fraud": 150,
+    "legitimate": 120,
+    "gray_zone": 30
+  },
+
+  "labeling_criteria": {
+    "FRAUD": "확정 위반 (감사 적발, 직원 인정, 회수 완료)",
+    "LEGITIMATE": "정상 거래 (업무 관련성 명확, 증빙 완비)",
+    "GRAY": "판단 애매 (증빙 부족, 업무 관련성 불명확하나 악의 없음)"
+  },
+
+  "samples": [
+    {
+      "id": "golden-001",
+      "label": "FRAUD",
+      "transaction": {
+        "amount": 500000,
+        "currency": "KRW",
+        "merchant_name": "강남 카지노",
+        "mcc": "7995",
+        "transacted_at": "2024-03-15T23:30:00Z",
+        "location": {"lat": 37.5, "lon": 127.0},
+        "is_online": false
+      },
+      "employee": {
+        "department": "영업팀",
+        "position": "대리",
+        "is_frequent_traveler": false
+      },
+      "context": {
+        "day_of_week": "FRIDAY",
+        "hour": 23,
+        "distance_from_office_km": 10,
+        "linked_trip": null,
+        "receipt_submitted": false
+      },
+      "ground_truth": {
+        "fraud_type": "BLACKLIST_MCC",
+        "reason": "도박 관련 지출 (업무 무관)",
+        "legal_reference": "법인세법 제27조",
+        "recovery_amount": 500000,
+        "disciplinary_action": "경고"
+      },
+      "expected_system_behavior": {
+        "should_block": true,
+        "risk_score_expected": 100,
+        "case_creation_expected": true,
+        "severity_expected": "CRITICAL"
+      }
+    },
+    {
+      "id": "golden-002",
+      "label": "LEGITIMATE",
+      "transaction": {
+        "amount": 150000,
+        "currency": "KRW",
+        "merchant_name": "호텔 신라",
+        "mcc": "7011",
+        "transacted_at": "2024-04-10T22:00:00Z",
+        "location": {"lat": 35.1, "lon": 129.0},
+        "is_online": false
+      },
+      "employee": {
+        "department": "영업팀",
+        "position": "과장",
+        "is_frequent_traveler": true
+      },
+      "context": {
+        "day_of_week": "WEDNESDAY",
+        "hour": 22,
+        "distance_from_office_km": 350,
+        "linked_trip": {
+          "type": "BUSINESS_TRIP",
+          "destination": "부산",
+          "approved": true
+        },
+        "receipt_submitted": true
+      },
+      "ground_truth": {
+        "fraud_type": null,
+        "reason": "승인된 출장 중 숙박",
+        "legal_reference": null,
+        "recovery_amount": 0,
+        "disciplinary_action": null
+      },
+      "expected_system_behavior": {
+        "should_block": false,
+        "risk_score_expected": 0,
+        "case_creation_expected": false,
+        "severity_expected": "NONE"
+      }
+    },
+    {
+      "id": "golden-003",
+      "label": "FRAUD",
+      "transaction": {
+        "amount": 85000,
+        "currency": "KRW",
+        "merchant_name": "강남 룸살롱",
+        "mcc": "5813",
+        "transacted_at": "2024-05-20T01:30:00Z",
+        "location": {"lat": 37.5, "lon": 127.0},
+        "is_online": false
+      },
+      "employee": {
+        "department": "개발팀",
+        "position": "사원",
+        "is_frequent_traveler": false
+      },
+      "context": {
+        "day_of_week": "SATURDAY",
+        "hour": 1,
+        "distance_from_office_km": 8,
+        "linked_trip": null,
+        "receipt_submitted": false
+      },
+      "ground_truth": {
+        "fraud_type": "HIGH_RISK_SCORE",
+        "reason": "심야 주말 유흥업소 지출, 증빙 없음",
+        "legal_reference": "법인세법 제27조, 부가가치세법 제39조",
+        "recovery_amount": 85000,
+        "disciplinary_action": "경고"
+      },
+      "expected_system_behavior": {
+        "should_block": false,
+        "risk_score_expected": 90,
+        "case_creation_expected": true,
+        "severity_expected": "HIGH"
+      }
+    },
+    {
+      "id": "golden-004",
+      "label": "LEGITIMATE",
+      "transaction": {
+        "amount": 45000,
+        "currency": "KRW",
+        "merchant_name": "스타벅스 강남점",
+        "mcc": "5814",
+        "transacted_at": "2024-06-05T14:30:00Z",
+        "location": {"lat": 37.5, "lon": 127.0},
+        "is_online": false
+      },
+      "employee": {
+        "department": "마케팅팀",
+        "position": "부장",
+        "is_frequent_traveler": false
+      },
+      "context": {
+        "day_of_week": "WEDNESDAY",
+        "hour": 14,
+        "distance_from_office_km": 1,
+        "linked_trip": null,
+        "receipt_submitted": true
+      },
+      "ground_truth": {
+        "fraud_type": null,
+        "reason": "근무 시간 중 회의 관련 음료",
+        "legal_reference": null,
+        "recovery_amount": 0,
+        "disciplinary_action": null
+      },
+      "expected_system_behavior": {
+        "should_block": false,
+        "risk_score_expected": 0,
+        "case_creation_expected": false,
+        "severity_expected": "NONE"
+      }
+    },
+    {
+      "id": "golden-005",
+      "label": "FRAUD",
+      "transaction": {
+        "amount": 300000,
+        "currency": "KRW",
+        "merchant_name": "비트코인 거래소",
+        "mcc": "6051",
+        "transacted_at": "2024-07-12T16:00:00Z",
+        "location": null,
+        "is_online": true
+      },
+      "employee": {
+        "department": "재무팀",
+        "position": "대리",
+        "is_frequent_traveler": false
+      },
+      "context": {
+        "day_of_week": "FRIDAY",
+        "hour": 16,
+        "distance_from_office_km": null,
+        "linked_trip": null,
+        "receipt_submitted": false
+      },
+      "ground_truth": {
+        "fraud_type": "BLACKLIST_MCC",
+        "reason": "현금성 자산 구매 (가상화폐)",
+        "legal_reference": "법인세법 제27조",
+        "recovery_amount": 300000,
+        "disciplinary_action": "정직 3일"
+      },
+      "expected_system_behavior": {
+        "should_block": true,
+        "risk_score_expected": 100,
+        "case_creation_expected": true,
+        "severity_expected": "CRITICAL"
+      }
+    },
+    {
+      "id": "golden-006",
+      "label": "GRAY",
+      "transaction": {
+        "amount": 120000,
+        "currency": "KRW",
+        "merchant_name": "일식당 한강",
+        "mcc": "5812",
+        "transacted_at": "2024-08-08T20:00:00Z",
+        "location": {"lat": 37.5, "lon": 127.0},
+        "is_online": false
+      },
+      "employee": {
+        "department": "영업팀",
+        "position": "부장",
+        "is_frequent_traveler": false
+      },
+      "context": {
+        "day_of_week": "THURSDAY",
+        "hour": 20,
+        "distance_from_office_km": 5,
+        "linked_trip": null,
+        "receipt_submitted": true
+      },
+      "ground_truth": {
+        "fraud_type": null,
+        "reason": "접대비 주장하나 거래처 정보 불명확 (그레이존)",
+        "legal_reference": null,
+        "recovery_amount": 0,
+        "disciplinary_action": null,
+        "notes": "증빙은 있으나 참석자 명단 없음. 접대비로 처리하되 추후 주의"
+      },
+      "expected_system_behavior": {
+        "should_block": false,
+        "risk_score_expected": 45,
+        "case_creation_expected": false,
+        "severity_expected": "NONE"
+      }
+    },
+    {
+      "id": "golden-007",
+      "label": "FRAUD",
+      "transaction": {
+        "amount": 95000,
+        "currency": "KRW",
+        "merchant_name": "스타벅스 강남점",
+        "mcc": "5814",
+        "transacted_at": "2024-09-15T14:10:00Z",
+        "location": {"lat": 37.5, "lon": 127.0},
+        "is_online": false
+      },
+      "employee": {
+        "department": "개발팀",
+        "position": "사원",
+        "is_frequent_traveler": false
+      },
+      "context": {
+        "day_of_week": "SUNDAY",
+        "hour": 14,
+        "distance_from_office_km": 1,
+        "linked_trip": null,
+        "receipt_submitted": false,
+        "split_payment": true,
+        "same_merchant_count_30min": 3,
+        "amounts": [30000, 32000, 33000]
+      },
+      "ground_truth": {
+        "fraud_type": "SPLIT_PAYMENT",
+        "reason": "30분 내 동일 가맹점 3회 분할 결제 (한도 회피)",
+        "legal_reference": null,
+        "recovery_amount": 95000,
+        "disciplinary_action": "경고"
+      },
+      "expected_system_behavior": {
+        "should_block": false,
+        "risk_score_expected": 70,
+        "case_creation_expected": true,
+        "severity_expected": "HIGH"
+      }
+    },
+    {
+      "id": "golden-008",
+      "label": "LEGITIMATE",
+      "transaction": {
+        "amount": 250000,
+        "currency": "KRW",
+        "merchant_name": "대한항공",
+        "mcc": "4511",
+        "transacted_at": "2024-10-01T09:00:00Z",
+        "location": null,
+        "is_online": true
+      },
+      "employee": {
+        "department": "해외사업팀",
+        "position": "차장",
+        "is_frequent_traveler": true
+      },
+      "context": {
+        "day_of_week": "TUESDAY",
+        "hour": 9,
+        "distance_from_office_km": null,
+        "linked_trip": {
+          "type": "BUSINESS_TRIP",
+          "destination": "도쿄",
+          "approved": true
+        },
+        "receipt_submitted": true
+      },
+      "ground_truth": {
+        "fraud_type": null,
+        "reason": "승인된 해외 출장 항공권",
+        "legal_reference": null,
+        "recovery_amount": 0,
+        "disciplinary_action": null
+      },
+      "expected_system_behavior": {
+        "should_block": false,
+        "risk_score_expected": 0,
+        "case_creation_expected": false,
+        "severity_expected": "NONE"
+      }
+    }
+  ],
+
+  "usage_instructions": {
+    "evaluation": "이 골든셋으로 시스템의 Precision/Recall을 계산합니다.",
+    "tuning": "임계치 조정 시 골든셋에서 최적값을 찾습니다.",
+    "regression": "정책 변경 후 골든셋으로 회귀 테스트를 수행합니다.",
+    "expansion": "분기별 감사 결과를 추가하여 골든셋을 확장합니다."
+  },
+
+  "data_collection_process": {
+    "source": "2024년 내부 감사 결과 + 컴플라이언스 팀 수동 검토",
+    "labeling": "Finance 팀장 + 외부 회계사 교차 검증",
+    "quality_control": "라벨 불일치 건은 CFO 최종 판정",
+    "update_frequency": "분기별"
+  }
+}

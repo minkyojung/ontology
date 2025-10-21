@@ -1,0 +1,63 @@
+{
+  "timestamp": "2025-10-20T15:26:09.487899",
+  "riskDistribution": {
+    "critical": 109,
+    "high": 53,
+    "medium": 47,
+    "low": 291,
+    "total": 500
+  },
+  "mccImpact": [
+    {
+      "riskGroup": "BLACK",
+      "totalTransactions": 109,
+      "flaggedTransactions": 109,
+      "detectionRate": 100.0,
+      "totalAmount": 30595260
+    },
+    {
+      "riskGroup": "GRAY",
+      "totalTransactions": 100,
+      "flaggedTransactions": 22,
+      "detectionRate": 22.0,
+      "totalAmount": 53028320
+    },
+    {
+      "riskGroup": "NORMAL",
+      "totalTransactions": 291,
+      "flaggedTransactions": 0,
+      "detectionRate": 0.0,
+      "totalAmount": 29289840
+    }
+  ],
+  "precisionRecall": {
+    "truePositives": 109,
+    "falsePositives": 0,
+    "trueNegatives": 291,
+    "falseNegatives": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1Score": 1.0,
+    "accuracy": 1.0
+  },
+  "recoveryPotential": {
+    "criticalAmount": 30595260,
+    "highAmount": 40602378,
+    "mediumAmount": 12425942,
+    "totalFlagged": 131,
+    "totalAmount": 112913420,
+    "potentialRecovery": 71197638
+  },
+  "caseStats": {
+    "totalCases": 131,
+    "openCases": 131,
+    "criticalCases": 109,
+    "highCases": 22
+  },
+  "employeeRiskStats": {
+    "totalEmployees": 50,
+    "highRiskEmployees": 0,
+    "mediumRiskEmployees": 42,
+    "lowRiskEmployees": 8
+  }
+}

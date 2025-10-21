@@ -1,0 +1,61 @@
+{
+  "generated_at": "2025-10-21T11:22:59.920510",
+  "monthly": {
+    "period": "2025-10",
+    "type": "monthly",
+    "generated_at": "2025-10-21T11:22:59.551373",
+    "summary": {
+      "total_transactions": 0,
+      "total_cases": 0,
+      "detection_rate": 0,
+      "recovery_potential": 0
+    },
+    "case_status_breakdown": [],
+    "top_mcc_detections": [],
+    "top_employees": []
+  },
+  "quarterly": {
+    "period": "2025-Q4",
+    "type": "quarterly",
+    "generated_at": "2025-10-21T11:22:59.680700",
+    "summary": {
+      "total_transactions": 0,
+      "total_cases": 0,
+      "detection_rate": 0,
+      "recovery_potential": 0,
+      "approved_fraud_amount": 0
+    },
+    "monthly_trend": []
+  },
+  "rule_effectiveness": {
+    "generated_at": "2025-10-21T11:22:59.831227",
+    "rule_performance": [],
+    "blacklist_rule": {
+      "total_cases": 0,
+      "true_positives": 0,
+      "false_positives": 0,
+      "accuracy": 0,
+      "total_amount_flagged": 0
+    },
+    "graylist_rule": {
+      "total_cases": 0,
+      "true_positives": 0,
+      "false_positives": 0,
+      "accuracy": 0,
+      "total_amount_flagged": 0
+    },
+    "recommendations": [
+      {
+        "rule": "MCC Blacklist",
+        "issue": "낮은 정확도 (0%)",
+        "suggestion": "블랙리스트 MCC 코드를 재검토하고, False Positive가 많은 MCC를 그레이리스트로 이동"
+      }
+    ]
+  },
+  "performance_trends": {
+    "generated_at": "2025-10-21T11:22:59.920113",
+    "monthly_trends": [],
+    "avg_resolution_hours": null,
+    "repeat_offenders": []
+  }
+}

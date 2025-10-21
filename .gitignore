@@ -1,0 +1,5 @@
+.env
+
+# Large data files
+data/*.csv
+data/*.zip

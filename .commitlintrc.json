@@ -1,0 +1,41 @@
+{
+  "extends": ["@commitlint/config-conventional"],
+  "rules": {
+    "type-enum": [
+      2,
+      "always",
+      [
+        "feat",
+        "fix",
+        "ontology",
+        "rules",
+        "eval",
+        "docs",
+        "refactor",
+        "perf",
+        "test",
+        "build",
+        "ci",
+        "chore"
+      ]
+    ],
+    "scope-enum": [
+      2,
+      "always",
+      [
+        "expense",
+        "dashboard",
+        "cases",
+        "evals",
+        "reports",
+        "performance",
+        "ontology",
+        "ml",
+        "integration",
+        "portfolio"
+      ]
+    ],
+    "subject-case": [0],
+    "header-max-length": [2, "always", 100]
+  }
+}

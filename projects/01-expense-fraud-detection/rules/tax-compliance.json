@@ -1,0 +1,228 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tax Compliance Rules",
+  "description": "Korean tax law rules for corporate card transactions",
+  "version": "1.0.0",
+  "effective_from": "2025-01-01",
+  "jurisdiction": "Republic of Korea",
+
+  "tax_rules": [
+    {
+      "id": "CORP_TAX_27",
+      "law_name": "법인세법",
+      "article_number": "제27조",
+      "clause": null,
+      "title": "업무무관 비용 손금불산입",
+      "summary": "법인의 업무와 관련 없는 지출은 손금에 산입하지 아니한다.",
+      "full_text": "내국법인이 각 사업연도에 지출한 금액 중 다음 각 호의 어느 하나에 해당하는 것은 손금에 산입하지 아니한다. 1. 업무와 관련 없는 비용",
+      "category": "NON_DEDUCTIBLE_EXPENSE",
+      "law_url": "https://www.law.go.kr/lsLawLinkInfo.do?chrClsCd=010202&lsJoLnkSeq=900178234",
+      "effective_from": "2010-01-01",
+      "effective_until": null,
+      "auto_tag_conditions": {
+        "mcc_in": ["7995", "6051", "6010", "6011", "7273"],
+        "or": [
+          {"case_type": "BLACKLIST_MCC"},
+          {"case_type": "HIGH_RISK_SCORE", "risk_score_gte": 70}
+        ]
+      },
+      "accounting_treatment": {
+        "expense_account": "업무무관비용",
+        "tax_adjustment": "손금불산입",
+        "affects_taxable_income": true
+      }
+    },
+    {
+      "id": "VAT_39",
+      "law_name": "부가가치세법",
+      "article_number": "제39조",
+      "clause": null,
+      "title": "공제하지 아니하는 매입세액",
+      "summary": "접대비, 면세사업 관련, 업무무관 비용 등의 매입세액은 공제하지 아니한다.",
+      "full_text": "제1항 본문에도 불구하고 다음 각 호의 경우에는 매입세액을 공제하지 아니한다. 1. 접대비 및 이와 유사한 비용으로서 지출하는 것, 2. 면세사업 등에 관련된 매입세액, 3. 업무와 관련 없는 지출",
+      "category": "VAT_EXCLUSION",
+      "law_url": "https://www.law.go.kr/LSW//lsLawLinkInfo.do?chrClsCd=010202&lsId=001571&lsJoLnkSeq=900316725&print=print",
+      "effective_from": "2010-07-01",
+      "effective_until": null,
+      "auto_tag_conditions": {
+        "or": [
+          {"mcc_in": ["5813", "5921", "7273"], "amount_gte": 10000},
+          {"case_type": "BLACKLIST_MCC"},
+          {"entertainment_expense": true}
+        ]
+      },
+      "accounting_treatment": {
+        "vat_deductible": false,
+        "expense_account": "접대비/업무무관비용",
+        "tax_adjustment": "매입세액불공제"
+      }
+    },
+    {
+      "id": "CORP_TAX_ENTERTAINMENT",
+      "law_name": "법인세법 시행령",
+      "article_number": "제41조",
+      "clause": "제1항",
+      "title": "접대비의 범위 및 손금불산입",
+      "summary": "접대비는 법인이 업무와 관련하여 거래처 등에게 접대·교제·사례 또는 그 밖에 이와 유사한 목적으로 지출한 금액을 말하며, 한도를 초과한 금액은 손금불산입한다.",
+      "category": "ENTERTAINMENT_LIMIT",
+      "law_url": "https://www.law.go.kr/lsEfInfoP.do?lsiSeq=19659",
+      "effective_from": "2020-02-11",
+      "effective_until": null,
+      "limit_calculation": {
+        "description": "중소기업: 수입금액의 0.3% + 2,400만원 (연간)",
+        "base_rate": 0.003,
+        "fixed_amount": 24000000,
+        "currency": "KRW",
+        "period": "ANNUAL"
+      },
+      "auto_tag_conditions": {
+        "mcc_in": ["5812", "5813", "5814", "5921"],
+        "with_external_attendees": true
+      },
+      "accounting_treatment": {
+        "expense_account": "접대비",
+        "track_annual_limit": true,
+        "excess_treatment": "손금불산입"
+      }
+    },
+    {
+      "id": "CORPORATE_CARD_INCENTIVE",
+      "law_name": "조세특례제한법",
+      "article_number": "제126조의2",
+      "clause": null,
+      "title": "신용카드 등 사용금액에 대한 소득공제",
+      "summary": "법인카드를 사용하면 일부 세액공제 혜택이 있으나, 업무무관 지출은 제외된다.",
+      "category": "TAX_INCENTIVE",
+      "law_url": "https://www.law.go.kr/법령/조세특례제한법",
+      "effective_from": "2023-01-01",
+      "effective_until": null,
+      "auto_tag_conditions": {
+        "card_type": "CORPORATE",
+        "exclude_mcc_in": ["7995", "6051", "6010", "6011"]
+      },
+      "accounting_treatment": {
+        "incentive_rate": 0.01,
+        "description": "적격 거래의 1% 세액공제"
+      }
+    }
+  ],
+
+  "mcc_tax_mapping": {
+    "gambling": {
+      "mccs": ["7995"],
+      "tax_rules": ["CORP_TAX_27", "VAT_39"],
+      "default_tags": ["업무무관", "손금불산입", "매입세액불공제"],
+      "justification_override": false
+    },
+    "cash_equivalent": {
+      "mccs": ["6051", "6010", "6011"],
+      "tax_rules": ["CORP_TAX_27", "VAT_39"],
+      "default_tags": ["업무무관", "손금불산입", "매입세액불공제"],
+      "justification_override": false
+    },
+    "entertainment": {
+      "mccs": ["5813", "5814", "5921", "7273"],
+      "tax_rules": ["VAT_39", "CORP_TAX_ENTERTAINMENT"],
+      "default_tags": ["접대비", "매입세액불공제"],
+      "justification_override": true,
+      "requires": ["거래처 정보", "참석자 명단"]
+    },
+    "meals": {
+      "mccs": ["5812"],
+      "tax_rules": [],
+      "conditions": [
+        {
+          "if": "with_external_attendees",
+          "then": {
+            "tax_rules": ["VAT_39", "CORP_TAX_ENTERTAINMENT"],
+            "tags": ["접대비", "매입세액불공제"]
+          }
+        },
+        {
+          "if": "internal_only",
+          "then": {
+            "tax_rules": [],
+            "tags": ["복리후생비"],
+            "vat_deductible": true
+          }
+        }
+      ]
+    }
+  },
+
+  "tagging_workflow": {
+    "trigger": "ON_TRANSACTION_COMPLETE",
+    "steps": [
+      {
+        "step": 1,
+        "action": "MATCH_MCC",
+        "description": "거래의 MCC를 tax_rules와 매칭"
+      },
+      {
+        "step": 2,
+        "action": "EVALUATE_CONDITIONS",
+        "description": "auto_tag_conditions 평가"
+      },
+      {
+        "step": 3,
+        "action": "APPLY_TAGS",
+        "description": "해당 tax_rule의 태그 부착"
+      },
+      {
+        "step": 4,
+        "action": "UPDATE_ACCOUNTING",
+        "description": "회계 모듈에 세법 정보 전달"
+      },
+      {
+        "step": 5,
+        "action": "CREATE_CASE_IF_NEEDED",
+        "description": "업무무관/불공제 항목은 Case 생성"
+      }
+    ],
+    "output": {
+      "transaction_tags": ["업무무관", "손금불산입", "매입세액불공제", "접대비"],
+      "tax_rule_references": ["CORP_TAX_27", "VAT_39"],
+      "accounting_metadata": {
+        "expense_account": "업무무관비용",
+        "vat_deductible": false,
+        "tax_adjustment": "손금불산입"
+      }
+    }
+  },
+
+  "reporting": {
+    "frequency": "MONTHLY",
+    "recipients": ["finance@company.com", "tax@company.com"],
+    "contents": [
+      {
+        "report_name": "손금불산입 내역",
+        "description": "법인세법 제27조 적용 거래 목록",
+        "fields": ["transaction_id", "employee", "amount", "mcc", "reason", "tax_rule"]
+      },
+      {
+        "report_name": "매입세액불공제 내역",
+        "description": "부가세법 제39조 적용 거래 목록",
+        "fields": ["transaction_id", "vat_amount", "mcc", "reason", "tax_rule"]
+      },
+      {
+        "report_name": "접대비 한도 추적",
+        "description": "연간 접대비 누적 및 한도 대비 현황",
+        "fields": ["current_total", "annual_limit", "remaining", "excess"]
+      }
+    ]
+  },
+
+  "audit_requirements": {
+    "retention_period_years": 5,
+    "required_fields": [
+      "transaction_id",
+      "tax_rule_id",
+      "applied_at",
+      "tags",
+      "accounting_treatment",
+      "justification"
+    ],
+    "immutable": true,
+    "description": "모든 세법 태깅은 5년간 보관하며, 변경 불가 (감사 추적 필수)"
+  }
+}
